@@ -1,0 +1,177 @@
+---
+title: "Weekly Recruitment Check"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r eval=FALSE, include=FALSE}
+#TO_DATE -  All activity to date, must be updated to reflect month
+
+```
+
+
+```{r Packages, include=FALSE}
+library(readxl)
+library(janitor)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(gridExtra)
+library(grid)
+```
+
+
+```{r Import Data, include=FALSE}
+#read in data for master file spreadsheet and R01 information
+MASTER <- read_xlsx("NEUROMAP Master V2.xlsm", sheet = "MasterData")
+ENROLL_OVERVIEW <- read_xlsx("NEUROMAP Participant Tracker.xlsx", sheet = "RO1 Aggregate")
+
+```
+```{r}
+ENROLL_OVERVIEW <- ENROLL_OVERVIEW %>% 
+  rename(YEAR_GRANT = "YEAR...1", YEAR = "YEAR...3") %>%
+  select(YEAR_GRANT, MONTH, YEAR, GROUP, EXPECTED, PROJECTED, ENROLLED, C_EXPECTED, C_PROJECTED)
+```
+
+
+
+```{r DATA CLEAN 1, include=FALSE}
+#tidy up column names for MASTER
+MASTER<-dplyr::rename(MASTER, PAI= "PAI (M)", AI = "AI (M)", SH = "SH (M)", SPIN = "SPIN (M)", SCREEN_SENTDATE = "SCREEN: SENT DATE (M)", SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE (M)", SCREEN_COMPLETEYN =  "SCREEN: COMPLETE Y/N (M)")
+MASTER<-dplyr::rename(MASTER, INEL_CODE = "INELEGIBILITY CODE (M)", INEL_PHASE ="PHASE DEEMED INELIGIBLE (M)", INEL_YN = "ELIGIBLE YN (M)",  GROUP_SL = "GROUPED: SL (M)" )
+MASTER<-dplyr::rename(MASTER, S1_DATE = "S1 DATE (M)", S2_DATE ="S2 DATE (M)", S3_DATE = "S3 DATE (M)", S4_DATE = "S4 DATE (M)", S5_DATE = "S5 DATE (M)", INVITES1_YN = "INVITED TO S1 (M)", FIRST_CONTACT = "FIRST CONTACT (M)", GENDER = "GENDER (M)")
+#AGGREGATE <- dplyr::group_by(AGGREGATE, YEAR, YEAR_GRANT)
+
+```
+
+```{r DATA CLEAN 2, include=FALSE}
+#create record of start month and year for participants
+MASTER$SCREEN_SENTDATE <- as.POSIXct(strptime(MASTER$SCREEN_SENTDATE, format = '%Y-%m-%d'))
+MASTER$SCREEN_COMPLETEDATE <- as.POSIXct(strptime(MASTER$SCREEN_COMPLETEDATE, format = '%Y-%m-%d'))
+MASTER$S1_DATE <- as.POSIXct(strptime(MASTER$S1_DATE, format = '%Y-%m-%d'))
+
+MASTER$SCREEN_SENT_MONTH <- format(MASTER$SCREEN_SENTDATE, '%m')
+MASTER$SCREEN_SENT_YEAR <- format(MASTER$SCREEN_SENTDATE, '%Y')
+
+MASTER$SCREEN_COMPLETE_MONTH <- format(MASTER$SCREEN_COMPLETEDATE, '%m')
+MASTER$SCREEN_COMPLETE_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+MASTER$S1_MONTH <- format(MASTER$S1_DATE, '%m')
+MASTER$S1_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+#factorize source
+
+MASTER$STATUS <-factor(MASTER$STATUS, levels = c("Inquiry", "Screen sent", "Completed screen", "Invited S1"))
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Screen sent"] <- "Screen Sent, Not Completed"
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Completed screen"] <- "Inelegible After Screen"
+
+MASTER$SOURCE <- factor(MASTER$SOURCE, levels = c("Facebook/Contact Form", "StudyFinder", "Craigslist", "Unknown"))
+MASTER$SOURCE[is.na(MASTER$SOURCE)] <- "Unknown"
+```
+
+
+```{r include=FALSE}
+TO_DATE <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE, SCREEN_COMPLETEYN) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-08-30"))
+(TO_DATE)
+
+```
+
+
+```{r echo=FALSE}
+graph_TO_DATE <-ggplot(TO_DATE, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS)) +
+  scale_fill_discrete() +
+  labs(title ="Distribution of Enrollment Activity (July 01 - To Date)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+(graph_TO_DATE)
+
+graph_TO_DATE_SOURCE <-ggplot(TO_DATE, aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Recruitment (July 01 - To Date)", y = "Number of Contacts", x = "Source")
+(graph_TO_DATE_SOURCE)
+
+graph_TO_DATE_SOURCE_COM <-ggplot(TO_DATE, aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SCREEN_COMPLETEYN,)) + 
+  scale_fill_manual(name = "Status",
+                    values = c("red", "pink", "blue"),
+                    labels = c("Did Not Complete Screen", "Completed Screen")) +
+  labs(title ="Source x Completion", y = "Number of Contacts", x = "") 
+  
+(graph_TO_DATE_SOURCE_COM)
+
+ graph_MONTHLY_SOURCE_GENDER <-ggplot(TO_DATE, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = SOURCE,)) +
+  labs(title = "Gender Distribution of All Recruitment Activity To Date")
+
+(graph_MONTHLY_SOURCE_GENDER)
+
+```
+
+```{r eval=FALSE, include=FALSE}
+WEEKLY <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE ) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-07-30"))
+```
+```{r plot, eval=FALSE, include=FALSE}
+graph_WEEKLY <-ggplot(WEEKLY, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS,)) +
+  scale_fill_manual(values = c("red", "pink", "blue"),
+                    labels = c("Completed Screen", "Invited S1", "Screen Sent")) +
+  labs(title ="Distribution of Enrollment Activity (1 Week)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+
+(graph_WEEKLY)
+
+```
+
+
+```{r INVITED_S1 TO DATE, echo=FALSE}
+INVTEDS1_TO_DATE <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, S1_DATE, S2_DATE, S3_DATE, S4_DATE, S5_DATE, SCREEN_SENTDATE, GENDER, AGE, GROUP_SL, CONSENT) %>%
+  ##group_by(STATUS, GROUP) %>%
+  ##arrange()
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-08-31"), STATUS == "Invited S1")
+
+#EXAMPLE//IN PROG FOR AGGREGATE
+# PROJECTED <-INVTEDS1_TO_DATE %>%
+#   filter(CONSENT == 0) %>%
+#   group_by(GROUP, GROUP_SL) %>%
+#   tally()
+#-----
+
+graph_TO_DATE_GENDER <-ggplot(TO_DATE, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Distribution of Gender (All Contacts)", y = "Count", x = "Gender")
+(graph_TO_DATE_GENDER)
+
+graph_INVTEDS1_TO_DATE <-ggplot(INVTEDS1_TO_DATE, aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,)) + 
+  scale_fill_manual(name = "Gender of S1 Participants",
+                    values = c("pink", "orange"),
+                    labels = c("Female", "Male")) +
+  labs(title ="Gender Distribution of All Participants Invited to S1 (To Date)", y = "Number", x = "Group") 
+(graph_INVTEDS1_TO_DATE)
+
+
+```
+
+
+```{r echo=FALSE, warning=FALSE}
+
+graph_TO_DATE_AGE <-ggplot(TO_DATE, aes(AGE)) +
+   geom_histogram(bins = 15, color = "black", fill = "lightblue") + 
+  labs(title ="Age Distribution of All Contacts To Date", y = "Number", x = "Age") 
+
+(graph_TO_DATE_AGE)
+
+
+```
+

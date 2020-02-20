@@ -1,0 +1,133 @@
+---
+title: "Monthly Recruitment Check"
+output:
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+WEEKLY - all participants in flow for the week of X (change X)
+SCHEDULED - all participants scheduled for sessions since the start of the study
+FLOW - all participants currently in the study
+PROJECTED - all participants scheduled, but not yet signed consent (i.e. S1 not completed)
+EXPECTED_CURRENTMONTH - Expected enrollment for month according to R01 Timetable for Recruitment
+EXPECTED_CURRENTYEAR - calls table of expected enrollment for the year according to R01 Timetable for Recruitment
+ENROLLED_A - all participants enrolled in study to date
+ENROLLED_L - all participants enrolled (i.e S1 completed, consent) under R01 critiera
+ENROLLED_S - all participants enrolled (i.e S1 completed, consent) under expanded enrollment criteria (i.e. will not complete session 4-5)
+
+
+```{r Packages, include=FALSE}
+library(readxl)
+library(janitor)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+```
+
+
+```{r Read In Data, include=FALSE}
+#read in data for master file spreadsheet and R01 information
+MASTER <- read_xlsx("Test Files/testmaster.xlsm", sheet = "MasterData")
+TIMELINE <- read_xlsx("Test Files/RO1 Timeline.xlsx", sheet = "R01 Timeline")
+AGGREGATE <- read_xlsx("Test Files/RO1 Timeline.xlsx", sheet = "Aggregate")
+
+```
+
+```{r DATA CLEAN 1, include=FALSE}
+#tidy up column names for MASTER
+MASTER<-dplyr::rename(MASTER, PAI= "PAI (M)", AI = "AI (M)", SH = "SH (M)", SPIN = "SPIN (M)", SCREEN_SENTDATE = "SCREEN: SENT DATE (M)", SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE (M)", SCREEN_COMPLETEYN =  "SCREEN: COMPLETE Y/N (M)")
+MASTER<-dplyr::rename(MASTER, INEL_CODE = "INELEGIBILITY CODE (M)", INEL_PHASE ="PHASE DEEMED INELIGIBLE (M)", INEL_YN = "ELIGIBLE YN (M)",  GROUP_SL = "GROUPED: SL (M)" )
+MASTER<-dplyr::rename(MASTER, S1_DATE = "S1 DATE (M)", S2_DATE ="S2 DATE (M)", S3_DATE = "S3 DATE (M)", S4_DATE = "S4 DATE (M)", S5_DATE = "S5 DATE (M)", INVITES1_YN = "INVITED TO S1 (M)", FIRST_CONTACT = "FIRST CONTACT (M)")
+AGGREGATE <- dplyr::group_by(AGGREGATE, YEAR, YEAR_GRANT)
+
+```
+
+```{r DATA CLEAN 2, include=FALSE}
+#create record of start month and year for participants
+MASTER$SCREEN_SENTDATE <- as.POSIXct(strptime(MASTER$SCREEN_SENTDATE, format = '%Y-%m-%d'))
+MASTER$SCREEN_COMPLETEDATE <- as.POSIXct(strptime(MASTER$SCREEN_COMPLETEDATE, format = '%Y-%m-%d'))
+MASTER$S1_DATE <- as.POSIXct(strptime(MASTER$S1_DATE, format = '%Y-%m-%d'))
+
+MASTER$SCREEN_SENT_MONTH <- format(MASTER$SCREEN_SENTDATE, '%m')
+MASTER$SCREEN_SENT_YEAR <- format(MASTER$SCREEN_SENTDATE, '%Y')
+
+MASTER$SCREEN_COMPLETE_MONTH <- format(MASTER$SCREEN_COMPLETEDATE, '%m')
+MASTER$SCREEN_COMPLETE_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+MASTER$S1_MONTH <- format(MASTER$S1_DATE, '%m')
+MASTER$S1_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+#factorize source
+
+MASTER$STATUS<- factor(MASTER$STATUS, levels = c("Screen sent", "Completed screen", "Invited S1", "Scheduled S1", "Unknown"))
+MASTER$SOURCE[is.na(MASTER$SOURCE)] <- "Unknown"
+MASTER$SOURCE <- factor(MASTER$SOURCE, levels = c("Facebook/Contact Form", "StudyFinder", "Craigslist", "Unknown"))
+MASTER$SOURCE[is.na(MASTER$SOURCE)] <- "Unknown"
+```
+
+```{r DATA CLEAN 3, eval=FALSE, include=FALSE}
+#dating cleaning for ggplots analysis
+```
+
+#MONTHLY - All new participants for this month
+
+```{r echo=FALSE}
+MONTHLY <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-07-30"))
+```
+
+```{r echo=FALSE}
+graph_MONTHLY <-ggplot(MONTHLY, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS,)) +
+  scale_fill_manual(values = c("red", "pink", "blue"),
+                    labels = c("Completed Screen", "Invited S1", "Screen Sent", "Scheduled S1")) +
+  labs(title ="Distribution of Enrollment Activity (1 Month)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+(graph_MONTHLY)
+
+graph_MONTHLY_SOURCE <-ggplot(MONTHLY, aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Recruitment (1 Month)", y = "Number of Contacts", x = "Source")
+(graph_MONTHLY_SOURCE)
+
+graph_MONTHLY_GENDER <-ggplot(MONTHLY, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,))
+(graph_MONTHLY_GENDER)
+
+```
+
+
+```{r MONTHLY LIST, echo=FALSE, paged.print=FALSE}
+(MONTHLY)
+```
+
+```{r eval=FALSE, include=FALSE}
+graph_MONTHLY_SOURCE <-ggplot(MONTHLY, aes(GROUP)) +
+  geom_bar(aes(STATUS, fill = GROUP)) 
+
+(graph_MONTHLY_SOURCE)
+```
+
+
+```{r echo =FALSE}
+WEEKLY <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE ) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-07-30"))
+```
+```{r plot, echo=FALSE}
+graph_WEEKLY <-ggplot(WEEKLY, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS,)) +
+  scale_fill_manual(values = c("red", "pink", "blue"),
+                    labels = c("Completed Screen", "Invited S1", "Screen Sent")) +
+  labs(title ="Distribution of Enrollment Activity (1 Week)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+```
+

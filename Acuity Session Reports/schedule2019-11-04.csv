@@ -1,0 +1,132 @@
+Start Time,End Time,First Name,Last Name,Phone,Email,Type,Calendar,Appointment Price,Paid?,Amount Paid Online,Certificate Code,Notes,Date Scheduled,Label,Scheduled By,Canceled,Appointment ID
+9/5/19 16:00,9/5/19 19:00,To,Sa,4845509311,tommysalerno.info@gmail.com,Session 1,Sophie Paolizzi,0,no,0,,"S1 Session with Nate and Sophie, will also  have Begonia run session 2.",9/4/19,,bherbert@berkeley.edu,,313910916
+9/5/19 18:00,9/5/19 20:00,To,Sa,4845509311,tommysalerno.info@gmail.com,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/4/19,,bherbert@berkeley.edu,,314074377
+9/6/19 13:30,9/6/19 15:30,Et,Ko,8143604025,ethanbkol2@gmail.com,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/3/19,,bherbert@berkeley.edu,,313761741
+9/9/19 10:00,9/9/19 13:00,Ra,Ni,8148529758,rfn5089@psu.edu,Session 1,Daniel Parr,0,no,0,,,9/5/19,,a client,,314244849
+9/10/19 11:00,9/10/19 12:30,Ha,Br,8148806916,15haleyabrown@gmail.com,Session 1 Follow Up (1.5 hours),Alison S.,0,no,0,,,9/7/19,,bherbert@berkeley.edu,,314748951
+9/10/19 12:30,9/10/19 14:00,Av,Ev,7172625017,aie5097@psu.edu,Session 1 Follow Up (1.5 hours),Sophie Paolizzi,0,no,0,,,9/4/19,,bherbert@berkeley.edu,,313990695
+9/10/19 12:30,9/10/19 14:30,Ha,Br,8148806916,15haleyabrown@gmail.com,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/7/19,,bherbert@berkeley.edu,,314767106
+9/10/19 16:00,9/10/19 19:00,As,Ul,5202569586,aeu5032@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,9/9/19,,a client,no-show,315140117
+9/11/19 11:00,9/11/19 14:00,Ty,Du,4125136784,tcd5156@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/10/19,,a client,,315597689
+9/11/19 15:00,9/11/19 17:00,Ky,Sn,,,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/4/19,,a client,canceled,313923680
+9/12/19 8:00,9/12/19 9:30,Ki,Vi,4126253576,kev5131@psu.edu,Session 1 Follow Up (1.5 hours),Alison S.,0,no,0,,,9/5/19,,a client,,314216622
+9/12/19 12:00,9/12/19 14:00,Am,Za,3013106934,zankoam@verizon.net,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/4/19,,a client,,314029613
+9/12/19 16:00,9/12/19 19:00,Ky,Se,9177144776,kylaisewell6@gmail.com,Session 1,Nate Hall,0,no,0,,,9/10/19,,a client,,315582238
+9/12/19 17:30,9/12/19 19:00,Ky,Sn,,,Session 1 Follow Up (1.5 hours),Alison S.,0,no,0,,,9/4/19,,bherbert@berkeley.edu,,313986183
+9/13/19 9:00,9/13/19 11:00,Ca,St,2676151897,cbs5493@psu.edu,Session 2 (Daniel and Begonia),,0,no,0,,,9/4/19,,a client,canceled,314023189
+9/16/19 10:00,9/16/19 12:00,Ra,Ni,8148529758,rfn5089@psu.edu,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/11/19,,dpp5430@psu.edu,,315897764
+9/16/19 17:00,9/16/19 20:00,Vi,Go,9782886092,vbg5066@psu.edu,Session 1,Nate Hall,0,no,0,,,9/5/19,,a client,,314298758
+9/17/19 8:30,9/17/19 9:00,Je,Ro,8145538161,jessicamroussey@gmail.com,Session 1 Follow Up (30 minutes),Nate Hall,0,no,0,,507,9/12/19,,bherbert@berkeley.edu,,316080897
+9/17/19 9:00,9/17/19 10:30,Ty,Du,4125136784,tcd5156@psu.edu,Session 1 Follow Up (1.5 hours),Begonia Herbert-Ramirez,0,no,0,,,9/11/19,,a client,no-show,315852648
+9/17/19 9:00,9/17/19 11:00,Je,Ro,8145538161,jessicamroussey@gmail.com,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/12/19,,bherbert@berkeley.edu,,316080526
+9/17/19 16:00,9/17/19 18:00,Av,Ev,7172625017,aie5097@psu.edu,Session 2 (Daniel and Begonia),,0,no,0,,,9/13/19,,bherbert@berkeley.edu,canceled,316508221
+9/17/19 18:00,9/17/19 18:30,Av,Ev,7172625017,aie5097@psu.edu,Session 1 Follow Up (30 minutes),Sophie Paolizzi,0,no,0,,,9/13/19,,bherbert@berkeley.edu,canceled,316508446
+9/18/19 17:30,9/18/19 18:00,Ky,Sn,,,Session 1 Follow Up (30 minutes),Daniel Parr,0,no,0,,,9/18/19,,bherbert@berkeley.edu,,317735732
+9/19/19 11:00,9/19/19 14:00,Aa,Wy,7173989340,apw5356@psu.edu,Session 1,Daniel Parr,0,no,0,,,9/11/19,,a client,,315920944
+9/19/19 11:00,9/19/19 14:00,J,AS,4848090919,jsa5304@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/17/19,,a client,,317331355
+9/19/19 16:00,9/19/19 19:00,Ty,Du,4125136784,tcd5156@psu.edu,Session 1,Nate Hall,0,no,0,,,9/11/19,,a client,canceled,315776332
+9/19/19 17:30,9/19/19 18:00,Ky,Sn,,,Session 1 Follow Up (30 minutes),Daniel Parr,0,no,0,,,9/18/19,,bherbert@berkeley.edu,,317736220
+9/19/19 18:00,9/19/19 20:00,Ky,Sn,,,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/18/19,,bherbert@berkeley.edu,,317736388
+9/20/19 8:00,9/20/19 10:00,Ki,Vi,4126253576,kev5131@psu.edu,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/13/19,,bherbert@berkeley.edu,,316492398
+9/20/19 14:00,9/20/19 17:00,Ch,Zh,9179741232,cbz5089@psu.edu,Session 1,Daniel Parr,0,no,0,,,9/17/19,,a client,,317504124
+9/24/19 10:00,9/24/19 13:00,Ch,Zh,9179741232,cbz5089@psu.edu,Session 1,Daniel Parr,0,no,0,,,9/17/19,,a client,,317361322
+9/24/19 11:00,9/24/19 14:00,Sh,Su,8145718533,sks68@psu.edu,Session 1,Alison S.,0,no,0,,,9/17/19,,a client,,317353516
+9/25/19 11:30,9/25/19 14:30,St,Ne,9785012265,sun54@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/22/19,,a client,canceled,318609808
+9/25/19 14:00,9/25/19 17:00,Va,Ta,4844015032,VKT5039@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/17/19,,a client,,317362551
+9/26/19 10:30,9/26/19 11:00,Vi,Go,9782886092,vbg5066@psu.edu,Session 1 Follow Up (30 minutes),Nate Hall,0,no,0,,,9/16/19,,nate.hall329@gmail.com,,317155429
+9/26/19 11:00,9/26/19 13:00,Vi,Go,9782886092,vbg5066@psu.edu,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/16/19,,nate.hall329@gmail.com,,317155197
+9/26/19 11:00,9/26/19 14:00,Sh,Su,8145718533,sks68@psu.edu,Session 1 Follow Up (3 hours),Alison S.,0,no,0,,,9/24/19,,almasc526@gmail.com,,319147265
+9/26/19 12:30,9/26/19 14:00,Aa,Wy,7173989340,apw5356@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,9/19/19,,dpp5430@psu.edu,,317950631
+9/26/19 16:00,9/26/19 19:00,St,Ne,9785012265,sun54@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,9/22/19,,a client,canceled,318611337
+9/27/19 10:00,9/27/19 12:00,Ca,St,2676151897,cbs5493@psu.edu,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/13/19,,a client,,316386048
+9/30/19 10:00,9/30/19 12:00,Va,Ta,4844015032,VKT5039@psu.edu,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,9/25/19,,bherbert@berkeley.edu,,319557995
+9/30/19 12:00,9/30/19 15:00,Im,Mu,2674244778,ikm5070@psu.edu,Session 1,Daniel Parr,0,no,0,,,9/11/19,,a client,,315996431
+9/30/19 12:00,9/30/19 12:30,Va,Ta,4844015032,VKT5039@psu.edu,Session 1 Follow Up (30 minutes),Begonia Herbert-Ramirez,0,no,0,,,9/25/19,,bherbert@berkeley.edu,,319558394
+10/1/19 9:00,10/1/19 12:00,La,Wi,7328560626,lmw58@psu.edu,Session 3,Daniel Parr,0,no,0,,Alison and Nate available ,9/25/19,,a client,canceled,319457894
+10/1/19 10:30,10/1/19 13:30,Ce,Ph,'+19739432788,celinaphillips24@gmail.com,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/18/19,,a client,,317771679
+10/2/19 11:00,10/2/19 14:00,Am,Za,3013106934,zankoam@verizon.net,Session 3,Begonia Herbert-Ramirez,0,no,0,,,9/25/19,,a client,no-show,319459415
+10/2/19 12:30,10/2/19 13:00,Av,Ev,7172625017,aie5097@psu.edu,Session 1 Follow Up (30 minutes),Sophie Paolizzi,0,no,0,,,9/24/19,,dpp5430@psu.edu,,319212152
+10/2/19 13:00,10/2/19 15:00,Av,Ev,7172625017,aie5097@psu.edu,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/27/19,,dpp5430@psu.edu,,320143742
+10/2/19 14:00,10/2/19 17:00,El,Ke,8145740193,ewk4@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,9/18/19,,a client,,317752535
+10/2/19 15:00,10/2/19 16:30,Im,Mu,2674244778,ikm5070@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,9/30/19,,dpp5430@psu.edu,canceled,320733909
+10/3/19 11:00,10/3/19 14:00,J,AS,4848090919,jsa5304@psu.edu,Session 1 Follow Up (3 hours),Begonia Herbert-Ramirez,0,no,0,,,9/19/19,,bherbert@berkeley.edu,no-show,317960735
+10/3/19 11:00,10/3/19 13:00,Sh,Su,8145718533,sks68@psu.edu,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/26/19,,a client,,319772186
+10/3/19 16:00,10/3/19 19:00,Ca,Ob,5708773120,callieob1998@gmail.com,Session 1,Sophie Paolizzi,0,no,0,,,9/10/19,,a client,,315651843
+10/3/19 16:00,10/3/19 19:00,Ky,Se,9177144776,kylaisewell6@gmail.com,Session 1 Follow Up (3 hours),Nate Hall,0,no,0,,,9/13/19,,a client,,316496471
+10/3/19 18:00,10/3/19 21:00,La,Wi,7328560626,lmw58@psu.edu,Session 3,Daniel Parr,0,no,0,,,10/1/19,,bherbert@berkeley.edu,,321072161
+10/4/19 13:30,10/4/19 15:30,Chr,Zh,6462509698,christopherzhang88@gmail.com,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/20/19,,dpp5430@psu.edu,,318295009
+10/4/19 13:45,10/4/19 16:45,Al,Ha,7076076147,amh678@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,10/1/19,,bherbert@berkeley.edu,,321073142
+10/7/19 12:00,10/7/19 15:00,A,P,5708983924,arp5625@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/3/19,,a client,canceled,321659314
+10/8/19 9:00,10/8/19 12:00,Ce,Ph,9739432788,celinaphilips24@gmail.com,Session 1 Follow Up (3 hours),Begonia Herbert-Ramirez,0,no,0,,,10/1/19,,a client,,320996598
+10/8/19 10:00,10/8/19 11:30,Ch,Zh,9179741232,cbz5089@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,9/24/19,,dpp5430@psu.edu,,319135584
+10/8/19 11:30,10/8/19 14:30,Vi,Go,9782886092,vbg5066@psu.edu,Session 3,Daniel Parr,0,no,0,,,9/26/19,,a client,,319758329
+10/8/19 17:30,10/8/19 19:30,Test,Test,,,Session 2 (Marissa),,0,no,0,,,10/8/19,,dependpsu@gmail.com,canceled,322869554
+10/8/19 18:00,10/8/19 21:00,La,Wi,7328560626,lmw58@psu.edu,Session 3,Daniel Parr,0,no,0,,,10/3/19,,bherbert@berkeley.edu,,321696538
+10/9/19 11:30,10/9/19 14:30,Ha,St,8147778451,hes5249@psu.edu,Session 3,Begonia Herbert-Ramirez,0,no,0,,,9/25/19,,a client,,319588842
+10/9/19 13:15,10/9/19 14:45,Ch,Zh,9179741232,cbz5089@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,10/8/19,,dpp5430@psu.edu,,322740145
+10/9/19 14:30,10/9/19 15:00,El,Ke,8145740193,ewk4@psu.edu,Session 1 Follow Up (30 minutes),Begonia Herbert-Ramirez,0,no,0,,,10/2/19,,dpp5430@psu.edu,,321400070
+10/9/19 15:00,10/9/19 16:30,Im,Mu,2674244778,ikm5070@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,10/1/19,,dpp5430@psu.edu,,320909095
+10/9/19 15:00,10/9/19 17:00,Eli,Kel,8145740193,ewk4@psu.edu,Session 2 (Daniel and Begonia),Begonia Herbert-Ramirez,0,no,0,,,10/2/19,,dpp5430@psu.edu,,321400681
+10/10/19 12:00,10/10/19 14:00,Aa,Wy,7173989340,apw5356@psu.edu,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,9/26/19,,dpp5430@psu.edu,,319774042
+10/11/19 11:00,10/11/19 14:00,S,N,9785012265,stacyn97@gmail.com,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/7/19,,a client,,322393425
+10/11/19 13:00,10/11/19 16:00,A,P,5708983924,arp5625@psu.edu,Session 1,Daniel Parr,0,no,0,,,10/3/19,,a client,canceled,321661122
+10/11/19 14:00,10/11/19 17:00,Al,Ha,7076076147,amh678@psu.edu,Session 1 Follow Up (3 hours),Sophie Paolizzi,0,no,0,,"Hello,
+
+After review I expect to continue our interview this Friday (10/11) at 2:00PM. Please let me or the study coordinators know if this time no longer works and we can look to reschedule! I can also be available Tuesday/Thursday evenings (5:30-8:30), if that is more convenient for you. 
+
+Best,
+Sophie",10/6/19,,sophiepaolizzi@gmail.com,,322224629
+10/14/19 12:00,10/14/19 13:30,Ce,Ph,9739432788,celinaphillips24@gmail.com,Session 1 Follow Up (1.5 hours),Begonia Herbert-Ramirez,0,no,0,,,10/8/19,,a client,,322759935
+10/14/19 17:00,10/14/19 20:00,A,Smith,7174049367,ajs7140@psu.edu,Session 1,Nate Hall,0,no,0,,,10/8/19,,a client,,322821907
+10/15/19 10:00,10/15/19 12:00,Omoto,Te,Test,test@gmai.com,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,10/8/19,,a client,canceled,322857720
+10/15/19 16:00,10/15/19 19:00,M,A,8148265095,mja6074@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,10/3/19,,a client,,321574955
+10/15/19 17:30,10/15/19 18:00,Omoto,Te,Test,bherbert@psu.edu,SONA Study 1,Undergrad RAs,0,no,0,,,10/8/19,,a client,canceled,322866280
+10/16/19 9:00,10/16/19 12:00,Em,St,5407794441,eds5327@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/11/19,,a client,,323669051
+10/16/19 12:00,10/16/19 14:00,Kyla,Sewell,'+19177144776,kylaisewell6@gmail.com,Session 2 (Austin),Daniel Parr,0,no,0,,,10/8/19,,a client,canceled,322812217
+10/16/19 13:00,10/16/19 15:00,TEST,TEST,4.1503E+11,dependpsu@gmail.com,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,10/8/19,,a client,canceled,322857091
+10/16/19 15:30,10/16/19 17:00,Im,Mu,2674244778,ikm5070@psu.edu,Session 1 Follow Up (1.5 hours),Daniel Parr,0,no,0,,,10/9/19,,dpp5430@psu.edu,,323179111
+10/16/19 16:00,10/16/19 19:00,S,R,7406375290,skr5403@psu.edu,Session 1,Alison S.,0,no,0,,,9/30/19,,a client,,320786205
+10/16/19 17:00,10/16/19 19:00,Ce,Ph,9739432788,celinaphillips24@gmail.com,Session 2 (Marissa),Undergrad RAs,0,no,0,,,10/14/19,,a client,,324259669
+10/17/19 10:30,10/17/19 12:30,Ch,Zh,9179741232,cbz5089@psu.edu,Session 2 (Austin),Undergrad RAs,0,no,0,,,10/9/19,,dpp5430@psu.edu,,323136611
+10/17/19 16:00,10/17/19 19:00,De,Ji,6106036353,dxj5177@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,10/14/19,,a client,canceled,324283642
+10/18/19 13:30,10/18/19 15:30,Ca,Ob,5708773120,callieob1998@gmail.com,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,10/8/19,,a client,,322780249
+10/21/19 13:00,10/21/19 15:00,Al,Ha,7176076147,amh678@psu.edu,Session 2 (Daniel and Begonia),Daniel Parr,0,no,0,,,10/11/19,,a client,,323743203
+10/22/19 10:30,10/22/19 12:00,Vi,Go,9782886092,vbg5066@psu.edu,Session 3 Follow-Up  (1.5 Hours),Begonia Herbert-Ramirez,0,no,0,,,10/15/19,,a client,,324651537
+10/22/19 11:00,10/22/19 14:00,Ka,Ri,7244178908,klr5771@psu.edu,Session 1,Alison S.,0,no,0,,,10/16/19,,a client,,324909568
+10/22/19 17:00,10/22/19 18:30,M,A,8148265095,mja6074@psu.edu,Session 1 Follow Up (1.5 hours),Sophie Paolizzi,0,no,0,,,10/15/19,,a client,,324680005
+10/23/19 10:30,10/23/19 11:00,Im,Mu,2674244778,ikm5070@psu.edu,Session 1 Follow Up (30 minutes),Daniel Parr,0,no,0,,,10/18/19,,dpp5430@psu.edu,,325465025
+10/23/19 11:00,10/23/19 13:00,Im,Mu,2674244778,ikm5070@psu.edu,Session 2 (Austin),Undergrad RAs,0,no,0,,,10/18/19,,dpp5430@psu.edu,,325464871
+10/23/19 12:00,10/23/19 13:30,H,S,8147778451,hes5249@psu.edu,Session 3 Follow-Up  (1.5 Hours),Begonia Herbert-Ramirez,0,no,0,,,10/15/19,,a client,,324565907
+10/23/19 16:00,10/23/19 19:00,Ro,Be,7248149670,rjb6220@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/14/19,,a client,,324250100
+10/24/19 8:00,10/24/19 11:00,Al,Bu,5706403101,adakotaburke@gmail.com,Session 1,Daniel Parr,0,no,0,,,10/23/19,,a client,,326663720
+10/24/19 14:00,10/24/19 16:00,M,A,8148265095,mja6074@psu.edu,Session 2 (Mia),Undergrad RAs,0,no,0,,,10/22/19,,a client,,326517084
+10/24/19 16:00,10/24/19 19:00,De,Ji,6106036353,dxj5177@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,10/17/19,,a client,,325328973
+10/24/19 17:00,10/24/19 19:00,Em,St,5407794441,eds5327@psu.edu,Session 2 (Grace),Undergrad RAs,0,no,0,,,10/16/19,,a client,,324838407
+10/24/19 18:00,10/24/19 19:30,La,Wi,7328560626,lmw58@psu.edu,Session 3 Follow-Up  (1.5 Hours),Daniel Parr,0,no,0,,,10/18/19,,dpp5430@psu.edu,canceled,325462484
+10/25/19 11:00,10/25/19 12:30,Sta,Nel,9785012265,sun54@psu.edu,Session 1 Follow Up (1.5 hours),Begonia Herbert-Ramirez,0,no,0,,,10/11/19,,bherbert@berkeley.edu,,323714127
+10/28/19 9:00,10/28/19 11:00,Ce,Ph,9739432788,celinaphillips24@gmail.com,Session 2 (Chloe),Undergrad RAs,0,no,0,,,10/21/19,,a client,,325950509
+10/28/19 10:00,10/28/19 13:00,Co,Cr,8144417766,cjcrable@gmail.com,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/24/19,,a client,,327037121
+10/28/19 11:30,10/28/19 13:00,H,S,8147778451,hes5249@psu.edu,Session 3 Follow-Up  (1.5 Hours),Daniel Parr,0,no,0,,,10/23/19,,a client,,326815046
+10/29/19 11:00,10/29/19 14:00,S,R,7406375290,skr5403@psu.edu,Session 1,Alison S.,0,no,0,,,10/16/19,,almasc526@gmail.com,,324987951
+10/29/19 11:30,10/29/19 14:30,Amy,Zankowski,3013106934,zankoam@verizon.net,Session 3,Begonia Herbert-Ramirez,0,no,0,,,10/2/19,,a client,,321439535
+10/29/19 14:00,10/29/19 16:00,Ai,Sm,7177624965,aiden.s.98@gmail.com,Session 2 (Mia),Undergrad RAs,0,no,0,,,10/16/19,,a client,canceled,325033837
+10/30/19 11:00,10/30/19 14:00,Mo,Fa,5702463220,mbf5454@psu.edu,Session 1,Daniel Parr,0,no,0,,,10/23/19,,a client,canceled,326755610
+10/30/19 14:30,10/30/19 15:00,Ch,Zh,9179741232,cbz5089@psu.edu,Session 1 Follow Up (30 minutes),Daniel Parr,0,no,0,,,10/17/19,,dpp5430@psu.edu,canceled,325131032
+10/30/19 17:00,10/30/19 19:00,Ca,Ob,5708773120,callieob1998@gmail.com,Session 2 (Marissa),Undergrad RAs,0,no,0,,,10/22/19,,a client,,326532406
+10/31/19 11:30,10/31/19 14:30,Sa,Ol,5714227212,solimpo@pennstatehealth.psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/23/19,,a client,canceled,326679754
+10/31/19 12:00,10/31/19 13:30,Am,Za,3013106934,zankoam@verizon.net,Session 3 Follow-Up  (1.5 Hours),Begonia Herbert-Ramirez,0,no,0,,,10/29/19,,a client,,328231706
+11/1/19 10:30,11/1/19 11:00,Co,Cr,8144417766,cjcrable@gmail.com,Session 1 Follow Up (30 minutes),Begonia Herbert-Ramirez,0,no,0,,,10/28/19,,bherbert@berkeley.edu,canceled,327866057
+11/4/19 9:00,11/4/19 11:00,St,Ne,9785012265,sun54@psu.edu,Session 2 (Chloe),Undergrad RAs,0,no,0,,,10/25/19,,a client,,327287166
+11/5/19 11:00,11/5/19 14:00,Al,Wa,8145742854,avw5447@psu.edu,Session 1,Daniel Parr,0,no,0,,,10/27/19,,a client,,327726269
+11/5/19 11:00,11/5/19 14:00,Al,Ro,6107623143,ajr5809@psu.edu,Session 1,Alison S.,0,no,0,,,11/1/19,,a client,,329175099
+11/5/19 17:00,11/5/19 20:00,Co,Cu,5703364488,cpc5659@psu.edu,Session 1,Sophie Paolizzi,0,no,0,,,10/28/19,,bherbert@berkeley.edu,,327907528
+11/6/19 9:00,11/6/19 12:00,Je,Ro,8145538161,jessicamroussey@gmail.com,Session 3,Begonia Herbert-Ramirez,0,no,0,,,10/22/19,,a client,,326544473
+11/6/19 17:00,11/6/19 19:00,Ro,Be,7248149670,rjb6220@psu.edu,Session 2 (Marissa),Undergrad RAs,0,no,0,,,10/23/19,,a client,,326827676
+11/8/19 10:30,11/8/19 11:00,Co,Cr,8144417766,cjcrable@gmail.com,Session 1 Follow Up (30 minutes),Begonia Herbert-Ramirez,0,no,0,,,10/28/19,,bherbert@berkeley.edu,,327866470
+11/8/19 11:00,11/8/19 13:00,Co,Cr,8144417766,cjcrable@gmail.com,Session 2 (Austin),Undergrad RAs,0,no,0,,,10/28/19,,a client,,327865066
+11/8/19 14:00,11/8/19 17:00,Er,Ba,4842253458,emb26@pct.edu,Session 1,Daniel Parr,0,no,0,,,10/25/19,,a client,,327240508
+11/8/19 14:00,11/8/19 17:00,Ji,Yu,9542539003,jvy5366@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,10/30/19,,a client,,328496720
+11/11/19 10:00,11/11/19 13:00,St,Mi,8149332433,scm5402@psu.edu,Session 1,Begonia Herbert-Ramirez,0,no,0,,,11/2/19,,a client,,329308752
+11/13/19 12:30,11/13/19 15:30,Ni,Re,8149317768,nar5235@psu.edu,Session 1,Daniel Parr,0,no,0,,,11/1/19,,a client,,329214716
+11/14/19 17:00,11/14/19 20:00,Er,Se,7175622610,ems6051@psu.edu,Session 1,Nate Hall,0,no,0,,,11/2/19,,a client,,329340082
+11/18/19 17:00,11/18/19 19:00,DE,JI,6106036353,dxj5177@psu.edu,Session 2 (Marissa),Undergrad RAs,0,no,0,,,10/24/19,,a client,,327127826

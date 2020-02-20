@@ -1,0 +1,586 @@
+---
+title: "Weekly Recruitment Check (2)"
+subtitle: 
+author: 
+date: 1/17/2020
+output:
+  html_document:
+    code_folding: hide
+    df_print: kable
+    mathjax: default
+    number_sections: no
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    fig_width: 9 
+    fig_height: 6 
+  pdf_document:
+    code_folding: hide
+    df_print: kable
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(cowplot)
+library(qualtRics)
+library(readxl)
+#library(skimr)
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+
+START_WEEK <- mdy("01/17/2020") #only change me, set as day of report
+GY <- 1 #year of grant, change ?
+RO1_TABLE_CAPTION <- "January R01 Enrollment Targets"
+RO1_TOTAL_CAPTION <- "Cummulative R01 Enrollment To Date (Aug 2019 - Jan 2020)"
+ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (January 10th - January 16th)" 
+
+
+
+
+```
+
+
+```{r Import + Clean Data for Enrollment Master, include=FALSE}
+#setwd("Box/DEPENd/NeuroMAP/Recruitment/Participant Management/")
+directory_home<-file.path("/Users/strength/Box/DEPENd/NeuroMAP/Recruitment/Participant Management/") #set personal directory
+directory_work<-file.path("/Users/bbh5255/Box/DEPENd/NeuroMAP/Recruitment/Participant Management/") #set personal directory
+
+#read in data for master file spreadsheet and R01 information - REMOVE PASSWORD FROM MASTER
+MASTER <- read_xlsx(paste0(directory_home, "NEUROMAP Master V2.xlsx"), sheet = "MasterData")
+ENROLL_OVERVIEW <- read_xlsx(paste0(directory_home, "NEUROMAP Master V2.xlsx"), sheet = "RO1 Aggregate", col_names = TRUE)
+TRACKER <- read_xlsx(paste0(directory_home, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
+#SCHEDULE <-read_csv(paste0(directory_work, "schedule2019-09-29.csv")) #read in acuity schedule info
+
+
+#tidy up column names for MASTER
+
+MASTER<-dplyr::rename(MASTER, SCREEN_SENTDATE = "SCREEN: SENT DATE", SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE", SCREEN_COMPLETEYN = "SCREEN: COMPLETE Y/N", INEL_CODE = "INELEGIBILITY CODE", INEL_PHASE ="PHASE DEEMED INELIGIBLE", INEL_YN = "ELIGIBLE YN")
+
+#create record of start month and year for participants
+MASTER$SCREEN_SENTDATE <- as.POSIXct(strptime(MASTER$SCREEN_SENTDATE, format = '%Y-%m-%d'))
+MASTER$SCREEN_COMPLETEDATE <- as.POSIXct(strptime(MASTER$SCREEN_COMPLETEDATE, format = '%Y-%m-%d'))
+#MASTER$S1_DATE <- as.POSIXct(strptime(MASTER$S1_DATE, format = '%Y-%m-%d'))
+
+MASTER$SCREEN_SENT_MONTH <- format(MASTER$SCREEN_SENTDATE, '%m')
+MASTER$SCREEN_SENT_YEAR <- format(MASTER$SCREEN_SENTDATE, '%Y')
+
+MASTER$SCREEN_COMPLETE_MONTH <- format(MASTER$SCREEN_COMPLETEDATE, '%m')
+MASTER$SCREEN_COMPLETE_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+#MASTER$S1_MONTH <- format(MASTER$S1_DATE, '%m')
+#MASTER$S1_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+#factorize source
+
+MASTER$STATUS <-factor(MASTER$STATUS, levels = c("Completed S2", "Completed screen", "Inquiry", "Invited S1", "No longer interested", "Scheduled S1", "Screen sent"))
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Screen sent"] <- "Screen Sent, Not Completed"
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Completed screen"] <- "Ineligible After Screen"
+
+# MASTER$SOURCE <- factor(MASTER$SOURCE, levels = c("Craigslist", "Facebook/Contact Form", "Flyer", "Flyer/Davey Lab", "Flyer/HUB", "Flyer/Library", "Flyer/Moore", "Flyer/On Campus", "Flyer/Willard", "Flyer/Forum Building", "StudyFinder", "Word of Mouth", "Unknown"))
+MASTER$SOURCE[is.na(MASTER$SOURCE)] <- "Unknown"
+
+#clean variables in enrollment master
+TRACKER <- TRACKER %>% rename(S1_DATE = "S1 DATE", S2_DATE = "S2 DATE", S3_DATE = "S3 DATE", S4_DATE = "S4 DATE", S5_DATE = "S5 DATE", R01_ENROLLMENT = "FMRI GROUP (Y/N)", STATUS = "NOTES ABOUT STATUS")
+
+MASTER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", MASTER$NAME, perl = TRUE) # remove names and make initials
+TRACKER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", TRACKER$NAME, perl = TRUE) # remove names and make initials TRACKER
+
+TRACKER$`S1 FU 1`<- as_date(TRACKER$`S1 FU 1`)
+
+#convert date time to readable format in R, strip time
+#SCHEDULE$`Start Time`<-as.Date(“9/5/19 16:00”, format=“%m/%d/%y %H:%M”)
+
+#code for establishing the day of report for the study
+START_LWEEK <-START_WEEK - days (7) 
+END_WEEK <-START_WEEK + days(7) 
+
+CURRENT_MONTH_GRANT<- month(START_WEEK - months(3)) #month of study (do not change)
+
+#code for subsetting only actual entries in Master tab
+MASTER <- MASTER[1:460,]
+
+```
+
+```{r eval=FALSE, include=FALSE}
+ACUITY<-read_csv(paste0(directory, "/Acuity Session Reports/schedule2019-11-04.csv"))
+colnames(ACUITY)  
+
+#tota number of appointments that are not canceled/no-show by person
+ACUITY %>% select(Calendar, Canceled) %>%
+  filter(is.na(Canceled)) %>%
+  group_by(Calendar) %>%
+  tally()
+
+ACUITY %>% select(Calendar, Canceled, Type) %>%
+  filter(is.na(Canceled)) %>%
+  group_by(Calendar, Type) %>%
+  tally() 
+
+     
+```
+
+
+
+```{r Import Qualtrics Data, eval=FALSE, include=FALSE}
+
+q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #Begonias Account
+qualtrics_api_credentials(api_key = q_token, 
+                          base_url = "pennstate.ca1.qualtrics.com",
+                          install = FALSE)
+surveys<-all_surveys()
+S1_Checklist<-fetch_survey(surveyID = surveys$id[12] , label=FALSE, verbose = TRUE, convert = TRUE,)
+
+```
+
+# Enrollment Overview
+
+## RO1 Enrollment Targets For January
+
+
+```{r R01 Enrollment Overview, echo=FALSE}
+
+#Totals for the month
+
+R01_OVERVIEW <-ENROLL_OVERVIEW %>%
+  select(YEAR, MONTH, GROUP, EXPECTED, PROJECTED, `STATUS TBD`, `ENROLLED FMRI`, `ENROLLED NO FMRI`, `EXCLUDED`, C_EXPECTED) %>%
+    filter(MONTH == CURRENT_MONTH_GRANT & YEAR == GY) 
+
+OVERVIEW_TABLE <-R01_OVERVIEW %>%
+  select(GROUP, EXPECTED, PROJECTED, `ENROLLED FMRI`, `ENROLLED NO FMRI`, `STATUS TBD`, `EXCLUDED` )
+
+knitr::kable(
+  OVERVIEW_TABLE, 
+  caption = RO1_TABLE_CAPTION,
+  col.names = c("Diagnostic Group", "Expected Enrollment to Fulfill R01 Timeline in the Month of January", "In Process of Enrollment", "Enrolled in FMRI Group", "Not Enrolled in FMRI Group", "Status TBD", "Excluded"))
+```
+
+
+### Overview of Enrollment To Date
+
+```{r echo=FALSE}
+#TOTAL TO DATE
+
+RO1_TOTAL <-ENROLL_OVERVIEW %>%
+  #select(YEAR, MONTH, GROUP,  C_EXPECTED, `C_ENROLLED FMRI`,`C_ENROLLED NO FMRI`,C_EXCLUDED,C_PROJECTED ) %>%
+    dplyr::filter(MONTH == CURRENT_MONTH_GRANT & YEAR) %>%
+  group_by(GROUP)
+
+RO1_TOTAL <-select(RO1_TOTAL, GROUP, C_EXPECTED, `C_ENROLLED FMRI`, C_PROJECTED, `C_TBD`, `C_ENROLLED NO FMRI`, C_EXCLUDED)
+
+knitr::kable(
+  RO1_TOTAL,
+  caption = RO1_TOTAL_CAPTION,
+  col.names = c("Diagnostic Group", "Cumulative Expected Enrollment to Fulfill R01 Timeline", "Total Enrolled in FMRI Group", "Total In Process of Enrollment", "Total Status TBD", "Total Not Enrolled in FMRI Group", "Excluded"))
+
+```
+
+# Time Series
+
+```{r echo=FALSE, warning=FALSE}
+data <- ENROLL_OVERVIEW 
+
+data$Time_chronological <- factor(data$Time_chronological, levels = c("Apr_2019", "May_2019", "June_2019", "Jul_2019",  "Aug_2019", "Sep_2019", "Oct_2019", "Nov_2019", "Dec_2019", "Jan_2020", "Feb_2020", "Mar_2020"))
+
+
+data <- data %>% select(Time_chronological, GROUP, C_EXPECTED, C_PROJECTED, `C_ENROLLED FMRI`, `C_ENROLLED NO FMRI`, C_EXCLUDED)
+data_melt <- reshape2::melt(data,  id = c("Time_chronological", "GROUP"))
+
+#str(data_melt)
+
+
+ggplot(data= data_melt, aes(x = Time_chronological, y = value, color = variable, fill = variable, group = variable)) + geom_point(stat = "summary", fun.y=sum) +  stat_summary(fun.y=sum, geom="line")  + theme(axis.text.x = element_text(angle = 45))  + scale_color_brewer(palette = "Set1")+ facet_wrap(~GROUP, ncol = 2)
+  
+
+
+#geom_point(stat='summary', fun.y=sum) +stat_summary(fun.y=sum, geom="line") #+ facet_wrap(~GROUP)
+
+
+
+#View(data_melt)
+
+
+#str(data)
+
+
+#data$EXPECTED
+
+```
+
+
+
+<!-- #Session Overview -->
+
+<!-- ##Upcoming Week -->
+
+```{r Tally of Sessions for Current Week - UPDATE DATE WEEKLY, eval=FALSE, warning=FALSE, include=FALSE}
+
+TALLY_UPCOMING_SESSIONS <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+  dplyr::filter(`Start Time` >= START_WEEK & `Start Time` <= START_LWEEK) %>%
+  group_by(`Type`) %>%
+  tally() %>%
+  arrange(desc(n))
+
+knitr::kable(
+  TALLY_UPCOMING_SESSIONS, 
+  caption = "",
+  col.names = c("Session Type", "Number"))
+
+```
+
+<!-- ### Session 1 -->
+```{r Enrollment Session 1s for Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+ENROLLING<- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2019-11-04") & `Start Time` <= as.Date("2019-11-11")) & (`Type` == "Session 1"))
+
+knitr::kable(
+  ENROLLING, 
+  caption = "New Enrollment (Current Week)",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+```{r Follow-Up Session 1s for Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+
+UPCOMMING_FU <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2019-11-04") & `Start Time` <= as.Date("2019-11-11")) & (`Type` == "Session 1 Follow Up (1.5 hours)" | `Type` == "Session 1 Follow Up (30 minutes)" | `Type` == "Session 1 Follow Up (3 hours)"))
+
+knitr::kable(
+  UPCOMMING_FU, 
+  caption = "Follow-Up Sessions Scheduled This Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+<!-- ### Session 2 -->
+
+```{r Session 2 For Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+SESSION_2 <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2019-11-04") & `Start Time` <= as.Date("2019-11-11")) & (`Type` == "Session 2"))
+
+knitr::kable(
+  SESSION_2, 
+  caption = "Upcoming Session 2 (Current Week)",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+
+```
+
+<!-- ### Session 3 -->
+
+```{r Session 3 For Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+SESSION_3 <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2019-11-04") & `Start Time` <= as.Date("2019-11-11")) & (`Type` == "Session 3"))
+
+knitr::kable(
+  SESSION_3, 
+  caption = "Upcoming Session 3 (Current Week)",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+<!-- ## All Future Sessions -->
+
+```{r Sessions for the Following Week, eval=FALSE, include=FALSE}
+#all upcomming sessions - i took this off this week because its too much data
+#MUST CHANGE DATE
+UPCOMMING_ALL <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter(`Start Time` >= as.Date("2019-11-11") & `Start Time` <= as.Date("2019-11-30"))
+# 
+knitr::kable(
+UPCOMMING_ALL, 
+  caption = "Sessions for the Following Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+
+```
+
+<!-- ## Past Week Sessions -->
+```{r Sessions Last Week, eval=FALSE, include=FALSE}
+#MUST CHANGE DATE
+LASTWEEK <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter(`Start Time` >= as.Date("2019-10-27") & `Start Time` <= as.Date("2019-11-03"))
+
+
+knitr::kable(
+  LASTWEEK, 
+  caption = "Sessions Scheduled Last Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+```{r Session 1 Notes, eval=FALSE, include=FALSE}
+## Session 1 Notes - should be caption when working
+
+s1 <- read_csv(paste0(directory,"S1+Check+List_October+14,+2019_12.12 (1).csv"), col_names = TRUE) %>% 
+  #, col_types = cols(
+  # "Recorded Date" = col_datetime(format = "%Y-%m-%d %H:%M:%S"))) %>%
+#filter("Response Type" == "IP Address")  %>% #select only real entries, filter by date
+  select(Q1.1_1:Q3.6) %>% #rename
+  rename(id ="Q1.1_4", session_date = "Q1.1_1", session_time = "Q1.1_2", is_followup = "Q1.2", interviewer = "Q1.1_3", visit1_checklist = "Q2.1", visit1_notes = "Q2.2", session_complete = "Q2.3", followup = "Q2.4", followup_date = "Q2.5", need_followup = "Q2.6", visit2_checklist = Q3.1, visit1_makeup = Q3.2, visit1_makeuptxt = Q3.2_5_TEXT, session_complete2 = Q3.3, followup2 = Q3.4, followup_date2 = Q3.5, need_followup2 = Q3.6) %>%
+   arrange(desc(session_date))
+
+#sort items by visit 1 and visit 2
+visit1<-select(s1, id, is_followup, session_date, visit1_notes, visit1_checklist,  session_complete, followup, followup_date, need_followup) %>%
+  filter(is_followup == "No")
+
+visit1.tabledata <-select(s1, id, session_date, interviewer, session_complete, visit1_notes)
+
+knitr::kable(
+  visit1.tabledata,
+  caption = "Notes from Session 1",
+ col.names = c("ID", "Session Date", "Interviewer", "Session Complete (Y/N)", "Visit Notes"))
+
+```
+
+# Recruitment Visual Overview
+
+## Overview of Contact Outcomes
+
+```{r Overview of Contact Outcomes, echo=FALSE}
+total_status_graph <-MASTER %>% 
+  select(STATUS) %>%
+  dplyr::filter(!is.na(STATUS)) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip()+ 
+  theme(legend.position="none") +
+  ggtitle("Activity from July 01 - Today")
+
+#CHANGE FILTER TO CURRENT 1 WEEK PERIOD
+
+enrollment_pastweek_visual <-MASTER %>% 
+  select(STATUS, SCREEN_SENTDATE) %>%
+  dplyr::filter((SCREEN_SENTDATE >= START_LWEEK & SCREEN_SENTDATE <= START_WEEK & !is.na(STATUS))) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip() + 
+  theme(legend.position="none") +
+  ggtitle(ENROLL_PASTWEEK_TITLE)
+
+plot_grid(total_status_graph, enrollment_pastweek_visual,  ncol = 1)
+```
+
+## Source of Study Activity (July 01- Today)
+
+```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE}
+inquiry_plot<-MASTER %>% select(SOURCE) %>%
+  group_by(SOURCE) %>%
+  tally() %>%
+  arrange(desc(SOURCE)) %>%
+  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("Inquired About Study") +
+    coord_flip()+ 
+  theme(legend.position="none")
+
+
+source_enrollment_plot<-MASTER %>% select(SOURCE, STATUS) %>%
+  dplyr::filter(STATUS == "Invited S1") %>%
+  group_by(SOURCE) %>%
+  tally() %>%
+  arrange(desc(SOURCE)) %>%
+  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("Eligible After Baseline Screen") +
+    coord_flip()+ 
+  theme(legend.position="none")
+
+plot_grid(inquiry_plot, source_enrollment_plot, ncol = 2)
+
+```
+
+```{r Source of Contacts - Past Week, eval=FALSE, include=FALSE}
+source_contacts_pastweek_graph <- MASTER %>% 
+  dplyr::select(SCREEN_SENTDATE, SOURCE) %>%
+  filter(SCREEN_SENTDATE >= START_LWEEK & SCREEN_SENTDATE <= START_WEEK) %>%
+  ggplot(aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Contacts (Past Week)", y = "Number of Contacts", x = "Source") + 
+  theme(legend.position = "none")
+
+```
+
+```{r Gender Visualization, eval=FALSE, include=FALSE}
+graph_INVTEDS1_TO_DATE <- TRACKER %>% dplyr::select(GENDER, GROUP) %>%
+ggplot(aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,)) + 
+  scale_fill_manual(name = "Gender of S1 Participants",
+                    values = c("pink", "blue", "black"),
+                    labels = c("Female", "Male", "Unknown")) +
+  labs(title ="Gender Distribution of All Participants Invited to S1 (To Date)", y = "Number", x = "Group") 
+
+MASTER %>% dplyr::select(GENDER) %>%
+ggplot(aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Distribution of Gender (All Contacts)", y = "Count", x = "Gender")
+
+
+
+#plot_grid(graph_TO_DATE, graph_WEEKLY_SOURCE, ncol = 1)
+
+
+```
+
+
+```{r Counts of All Contacts, eval=FALSE, include=FALSE}
+#COUNTS OF ALL CONTACTS
+
+SOURCE_COUNT<-TO_DATE %>% 
+  select(SOURCE) %>%
+  group_by(SOURCE) %>%
+  tally()
+
+GENDER_COUNT <-TO_DATE %>% 
+  select(GENDER) %>%
+  group_by(GENDER) %>%
+  tally()
+
+AGE_COUNT <- TO_DATE %>% 
+  select(AGE) %>%
+  group_by(AGE) %>%
+  tally()
+
+SCREEN_COMPLETE_COUNT <- TO_DATE %>% 
+  select(SCREEN_COMPLETEYN) %>%
+  group_by(SCREEN_COMPLETEYN) %>%
+  tally()
+
+new_df<-full_join(SOURCE_COUNT, SCREEN_COMPLETE_COUNT)
+new_df_2 <-full_join(AGE_COUNT, GENDER_COUNT)
+new_new <-full_join(new_df, new_df_2 )
+```
+
+# Visual Status of Scheduled and Enrolled Participants
+
+```{r Age Visualization, echo=FALSE, warning=FALSE}
+
+# graph_age_contacts <- MASTER %>% select(AGE) %>%
+#   ggplot(aes(AGE)) +
+#   geom_histogram(bins = 10, color = "black", fill = "lightblue") + 
+#   labs(title ="Age: All Contacts To Date", y = "Number", x = "Age")  +
+#   theme(plot.title = element_text(size = 10))
+
+
+graph_age_enrolled_dense <- TRACKER %>%
+  filter(STATUS != 'NO SHOW') %>%
+  ggplot(aes(AGE)) +
+geom_density(fill="#69b3a2", color="#e9ecef", alpha=.8) +
+  labs(title ="Age: Scheduled and Enrolled Participants", y = "Density", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+graph_age_contacts_dense <- MASTER %>% select(AGE) %>%
+  ggplot(aes(AGE)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=.8)+ 
+  labs(title ="Age: All Contacts To Date", y = "Density", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+plot_grid(graph_age_enrolled_dense, graph_age_contacts_dense, nrow = 1)
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+# graph_TO_DATE_GENDER <- MASTER %>%
+# ggplot(aes(GENDER)) +
+#   geom_bar(aes(GENDER, fill = GENDER,)) +
+#   labs(title ="Gender: All Contacts To Date", y = "Count", x = "Gender") +
+#   theme(plot.title = element_text(size = 10))
+  
+```
+
+```{r Visual Status of Enrolled Participants, echo=FALSE}
+
+#TRACKER[,13] <- ifelse(TRACKER[,13] == "M", 1, ifelse(A[,1] == "F", 2, 99))
+
+#Define the number of colors you want
+nb.cols <- 18
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+
+
+status_graph<-TRACKER %>% select(STATUS) %>%
+  #dplyr::filter(str_detect(STATUS, "L$"))
+  tally() %>%
+  arrange(n) %>%
+  ggplot(aes(x=STATUS, y=n, fill = STATUS)) + 
+  geom_bar(stat = "identity") +
+  theme_minimal() +
+  coord_flip()+ 
+  labs(title ="Participant Pipeline Summary", x = "Status", y = "Number") +
+  theme(legend.position="none")
+
+graph_S1_GENDERGROUP <- TRACKER %>%
+  dplyr::filter(GROUP != "Ineligible") %>%
+  ggplot(aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,))  +
+ labs(title ="Gender: Scheduled or Enrolled Participants by Diagnostic Group", y = "Number") +
+  theme(plot.title = element_text(size = 10),
+        axis.title = element_text(size = 8)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+   theme(legend.position="none")
+
+graph_S1_GENDER <- TRACKER %>%
+  ggplot(aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Gender: Scheduled or Enrolled Participants", y = "Count", x = "Gender")  +
+  theme(plot.title = element_text(size = 10)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+  theme(legend.position="none")
+
+
+plot_grid(graph_S1_GENDER, graph_S1_GENDERGROUP, nrow = 1)
+
+```
+
+### Age and Gender Breakdown
+
+```{r echo=FALSE}
+plot_grid(graph_age_enrolled_dense, graph_S1_GENDER, ncol = 1)
+```
+
+
+```{r echo=FALSE}
+TRACKER<-TRACKER %>%
+  mutate(current_session=case_when(
+    .$STATUS == "Scheduled S1" ~ "S1",
+    .$STATUS == "Canceled S1" ~ "STUCK",
+    .$STATUS == "Scheduled S1 FU" ~ "S1",
+    .$STATUS == "Completed S1" ~ "STUCK",
+    .$STATUS == "Scheduled S2" ~ "S2",
+    .$STATUS == "Completed S2" ~ "STUCK",
+    .$STATUS == "Scheduled S3, Scheduled S4" ~ "S3/S4",
+    .$STATUS == "Scheduled S3" ~ "S3",
+    .$STATUS == "S3 Not Completed" ~ "STUCK",
+    .$STATUS == "Completed S3" & .$R01_ENROLLMENT == "Y" ~ "SCAN NEEDED",
+    .$STATUS == "Completed S3" & .$R01_ENROLLMENT == "N" ~ "NO FMRI - COMPLETED T1",
+    .$STATUS == "Scheduling S4" ~ "SCHEDULING",
+    .$STATUS == "Invited S3" ~ "SCHEDULING",
+    .$STATUS == "Ineligible" ~ "INEL",
+    .$STATUS == "Non Responsive" ~ "NR",
+    .$STATUS == "Completed S4" ~ "FMRI - COMPLETED T1",
+    .$STATUS == "Non Responsive/Missed Session/Stuck" ~ "STUCK",
+    .$STATUS == "Scheduled S4" ~ "S4",
+    .$STATUS == "Scheduled S3, Completed S4" ~ "S3 SCHEDULED, S4 COMPLETED",
+    .$STATUS == "Excluded" ~ "INEL"))
+
+
+  t<-ggplot(data=TRACKER, aes(x=current_session)) +
+  geom_bar(stat="count")
+       
+```
+
+

@@ -1,0 +1,387 @@
+---
+title: "Weekly Recruitment Check"
+subtitle: 
+author: 
+date: 8/26/19
+output:
+  html_document:
+    code_folding: hide
+    df_print: kable
+    mathjax: default
+    number_sections: yes
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    fig_width: 9 
+    fig_height: 6 
+  pdf_document:
+    code_folding: hide
+    df_print: kable
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+---
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r Packages, include=FALSE}
+library(readxl)
+library(janitor)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(cowplot)
+#library(XLConnect)
+library(qualtRics)
+
+```
+
+
+```{r Import + Clean Data, include=FALSE}
+MASTER<-loadWorkbook(filename = "NEUROMAP Master V2.xlsx", password = "Hallquist351")
+MASTER<-readWorksheet(MASTER, "MasterData")
+#read in data for master file spreadsheet and R01 information
+as_tibble(MASTER)
+
+#MASTER <- read_xlsx("NEUROMAP Master V3 No Names.xlsm", sheet = "MasterData")
+ENROLL_OVERVIEW <- read_xlsx("NEUROMAP Participant Tracker.xlsx", sheet = "RO1 Aggregate")
+ENROLL_MASTER <- read_xlsx("NEUROMAP Participant Tracker.xlsx", sheet = "Master")
+
+
+#tidy up column names for MASTER
+MASTER<-dplyr::rename(MASTER, PAI= "PAI..M.", AI = "AI..M.", SH = "SH..M.", SPIN = "SPIN..M.", SCREEN_SENTDATE = "SCREEN..SENT.DATE..M.", SCREEN_COMPLETEDATE = "SCREEN..COMPLETE.DATE..M.", SCREEN_COMPLETEYN =  "SCREEN..COMPLETE.Y.N..M.")
+MASTER<-dplyr::rename(MASTER, INEL_CODE = "INELEGIBILITY.CODE..M.", INEL_PHASE ="PHASE.DEEMED.INELIGIBLE..M.", INEL_YN = "ELIGIBLE.YN..M.",  GROUP_SL = "GROUPED..SL..M.")
+MASTER<-dplyr::rename(MASTER, S1_DATE = "S1.DATE..M.", S2_DATE ="S2.DATE..M.", S3_DATE = "S3.DATE..M.", S4_DATE = "S4.DATE..M.", S5_DATE = "S5.DATE..M.", INVITES1_YN = "INVITED.TO.S1..M.", FIRST_CONTACT = "FIRST.CONTACT..M.", GENDER = "GENDER..M.")
+
+#create record of start month and year for participants
+MASTER$SCREEN_SENTDATE <- as.POSIXct(strptime(MASTER$SCREEN_SENTDATE, format = '%Y-%m-%d'))
+MASTER$SCREEN_COMPLETEDATE <- as.POSIXct(strptime(MASTER$SCREEN_COMPLETEDATE, format = '%Y-%m-%d'))
+MASTER$S1_DATE <- as.POSIXct(strptime(MASTER$S1_DATE, format = '%Y-%m-%d'))
+
+MASTER$SCREEN_SENT_MONTH <- format(MASTER$SCREEN_SENTDATE, '%m')
+MASTER$SCREEN_SENT_YEAR <- format(MASTER$SCREEN_SENTDATE, '%Y')
+
+MASTER$SCREEN_COMPLETE_MONTH <- format(MASTER$SCREEN_COMPLETEDATE, '%m')
+MASTER$SCREEN_COMPLETE_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+MASTER$S1_MONTH <- format(MASTER$S1_DATE, '%m')
+MASTER$S1_YEAR <- format(MASTER$SCREEN_COMPLETEDATE, '%Y')
+
+#factorize source
+
+MASTER$STATUS <-factor(MASTER$STATUS, levels = c("Completed S2", "Completed screen", "Inquiry", "Invited S1", "No longer interested", "Scheduled S1", "Screen sent"))
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Screen sent"] <- "Screen Sent, Not Completed"
+levels(MASTER$STATUS)[levels(MASTER$STATUS)=="Completed screen"] <- "Ineligible After Screen"
+
+MASTER$SOURCE <- factor(MASTER$SOURCE, levels = c("Facebook/Contact Form", "StudyFinder", "Craigslist", "Unknown"))
+MASTER$SOURCE[is.na(MASTER$SOURCE)] <- "Unknown"
+
+#clean variables in enrollment master
+ENROLL_MASTER <- ENROLL_MASTER %>% rename(S1_DATE = "S1 DATE", S2_DATE = "S2 DATE", S3_DATE = "S3 DATE", S4_DATE = "S4 DATE", S5_DATE = "S5 DATE")
+
+ENROLL_MASTER$R01_ENROLLMENT <- factor(ENROLL_MASTER$R01_ENROLLMENT, levels = c("N", "Undetermined"))
+levels(ENROLL_MASTER$R01_ENROLLMENT)[levels(ENROLL_MASTER$R01_ENROLLMENT)=="N"] <- "No"
+ENROLL_MASTER$R01_ENROLLMENT[is.na(ENROLL_MASTER$R01_ENROLLMENT)] <- "Undetermined"
+
+MASTER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", MASTER$NAME, perl = TRUE) # remove names and make initials
+ENROLL_MASTER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", ENROLL_MASTER$NAME, perl = TRUE) # remove names and make initials ENROLL_MASTER
+
+```
+
+```{r Import Qualtrics Data, include=FALSE}
+
+q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #Begonias Account
+qualtrics_api_credentials(api_key = q_token, 
+                          base_url = "pennstate.ca1.qualtrics.com",
+                          install = FALSE)
+surveys<-all_surveys()
+S1_Checklist<-fetch_survey(surveyID = surveys$id[12], label=FALSE, verbose = TRUE, force_request = TRUE)
+
+```
+
+
+```{r}
+ENROLLED <-MASTER %>% filter(!is.na(S1_DATE))
+MONTH_TALLY <- ENROLLED %>% group_by(GROUP) %>%
+  filter(S1_MONTH == "08") %>%
+  tally()
+MONTH_TALLY <-MONTH_TALLY %>% rename(NUMBER = "n")
+MONTH_TALLY$MONTH=08
+
+merge(ENROLL_OVERVIEW, MONTH_TALLY, by = "GROUP")
+
+
+
+
+```
+
+
+## Enrollment Overview
+
+### RO1 Enrollment Target 
+
+```{r RO1 Enrollment Overview, echo=FALSE}
+
+#GROUP_OVERVIEW <-ENROLL_OVERVIEW %>%
+  #group_by(GROUP)
+
+#Totals for the month
+
+ENROLL_OVERVIEW <- ENROLL_OVERVIEW %>% 
+  rename(YEAR_GRANT = "YEAR...1", YEAR = "YEAR...3") %>%
+  select(YEAR_GRANT, MONTH, YEAR, GROUP, EXPECTED, PROJECTED, ENROLLED, C_EXPECTED, C_PROJECTED)
+
+AUGUST_RO1 <-ENROLL_OVERVIEW %>%
+    select(-YEAR) %>%
+    filter(MONTH == "Aug" & YEAR_GRANT == 1)
+
+knitr::kable(
+  AUGUST_RO1, 
+  caption = "August R01 Enrollment Targets",
+  col.names = c("Year", "Month", "Group", "Expected Enrollment", "Projected Enrollment (Scheduled for S1)", "Actual Enrollment (fMRI Eligible)", "Cumulative Expected", "Cumulative Projected"))
+
+```
+
+### Overview of August Enrollment
+
+```{r echo=FALSE}
+MONTH_TOTAL <- ENROLL_MASTER %>%
+  select(GROUP, S1_DATE, R01_ENROLLMENT) %>%
+  filter(S1_DATE >= as.Date("2019-08-01") & S1_DATE <= as.Date("2019-08-30")) %>%
+  group_by(GROUP, R01_ENROLLMENT) %>%
+  tally()
+  
+knitr::kable(
+  MONTH_TOTAL, 
+  caption = "Overview of August Enrollment by Group",
+  col.names = c("Diagnostic Group", "RO1 Enrollment (fmri Eligible)", "Total (n)"))
+
+```
+
+
+## Session Overview
+```{r All Participants To Date DF, echo=FALSE}
+#create df with all rows of participants active from start of study to date
+#filter date must be updated
+TO_DATE <- MASTER %>% 
+  dplyr::select(STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE, SCREEN_COMPLETEYN) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-09-30")) # %>%
+#group_by(STATUS) %>%
+#tally()
+
+TO_DATE_count<-count(TO_DATE, STATUS)
+
+#all upcomming sessions
+#MUST CHANGE DATE
+UPCOMMING_ALL <- ENROLL_MASTER %>%
+  select(NAME, ID, AGE, GENDER, GROUP, S1_DATE) %>%
+  filter(S1_DATE >= as.Date("2019-08-13") & S1_DATE <= as.Date("2019-08-30")) %>%
+  arrange(S1_DATE)
+
+knitr::kable(
+  UPCOMMING_ALL, 
+  caption = "All Upcomming Sessions",
+  col.names = c("Name", "ID", "Age", "Gender", "Group", "Date of Session 1"))
+
+#filter participants currently in pipeline
+
+PIPELINE <- MASTER  %>%
+  select(NAME, GROUP, STATUS, AGE, S1_DATE, S2_DATE, S3_DATE, S4_DATE) %>%
+  filter(STATUS == "Invited S1") %>%
+  group_by(STATUS)
+
+#sessions this week overview
+#MUST CHANGE DATE
+UPCOMMING <- ENROLL_MASTER %>%
+  select(NAME, ID, AGE, GENDER, GROUP, R01_ENROLLMENT, S1_DATE) %>%
+  filter(S1_DATE >= as.Date("2019-08-12") & S1_DATE <= as.Date("2019-08-17")) 
+
+knitr::kable(
+  UPCOMMING, 
+  caption = "Sessions Scheduled This Week",
+  col.names = c("Name", "ID", "Age", "Gender", "Group", "fMRI Elegible", "Date of Session 1"))
+
+#sessions last week
+#MUST CHANGE DATE
+LASTWEEK <- ENROLL_MASTER %>%
+  select(NAME, ID, AGE, GENDER, GROUP, R01_ENROLLMENT, S1_DATE, S2_DATE) %>%
+  filter(S1_DATE >= as.Date("2019-08-05") & S1_DATE <= as.Date("2019-08-12")) 
+
+knitr::kable(
+  LASTWEEK, 
+  caption = "Sessions Scheduled Last Week",
+  col.names = c("Name", "ID", "Age", "Gender", "Group", "fMRI Elegible", "Date of Session 1", "Date of Session 2"))
+
+#number of each session completed
+# SESSIONS_SUM <- ENROLL_MASTER %>%
+#   select(S1_DATE, S2_DATE, S3_DATE, S4_DATE, S5_DATE) %>%
+#   filter(S1_DATE >= as.Date("2019-08-01") & S1_DATE <= as.Date("2019-08-12")) %>%
+#   count()
+
+```
+
+
+## Visual Overview
+```{r echo=FALSE}
+graph_TO_DATE <-ggplot(TO_DATE, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS)) +
+  scale_fill_discrete() +
+  labs(title ="Enrollment Activity (July 01 - To Date)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+
+# graph_TO_DATE_SOURCE_COM <-ggplot(TO_DATE, aes(SOURCE)) +
+#   geom_bar(aes(SOURCE, fill = SOURCE,)) + 
+#   labs(title ="Source x Completion", y = "Number of Contacts", x = "") 
+
+
+  
+# (graph_TO_DATE_SOURCE_COM)
+# 
+#  graph_MONTHLY_SOURCE_GENDER <-ggplot(TO_DATE, aes(GENDER)) +
+#   geom_bar(aes(GENDER, fill = SOURCE,)) +
+#   labs(title = "Gender Distribution of All Recruitment Activity To Date")
+# 
+# (graph_MONTHLY_SOURCE_GENDER)
+
+#CHANGE WEEKLY TO CURRENT 1 WEEK PERIOD
+
+WEEKLY <- MASTER %>% 
+  dplyr::select(NAME, STATUS, GROUP, SCREEN_SENTDATE, GENDER, AGE, SOURCE ) %>%
+  filter(SCREEN_SENTDATE >= as.Date("2019-08-05") & SCREEN_SENTDATE <= as.Date("2019-08-12"))
+
+graph_WEEKLY <-ggplot(WEEKLY, aes(STATUS)) +
+  geom_bar(aes(STATUS, fill = STATUS,)) +
+  #scale_fill_manual(values = c("red", "pink", "blue"),
+                    #labels = c("Completed Screen", "Invited S1", "Screen Sent")) +
+  labs(title ="Enrollment Activity (Past Week)", y = "Number of Contacts", x = "Status") +
+  theme(legend.position = "none")
+
+#plot_grid(graph_TO_DATE, graph_WEEKLY, nrow = 4)
+
+```
+
+
+```{r echo=FALSE}
+graph_TO_DATE_SOURCE <-ggplot(TO_DATE, aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Recruitment (July 01 - To Date)", y = "Number of Contacts", x = "Source") +
+  theme(legend.position = "none")
+
+graph_WEEKLY_SOURCE <-ggplot(WEEKLY, aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Recruitment (Past Week)", y = "Number of Contacts", x = "Source") + 
+  theme(legend.position = "none")
+
+plot_grid(graph_TO_DATE, graph_TO_DATE_SOURCE, ncol = 1)
+
+```
+
+```{r INVITED_S1 TO DATE, echo=FALSE}
+#DATE MUST BE UPDATED 
+INVTEDS1_TO_DATE <- MASTER %>% 
+  dplyr::select(STATUS, GROUP, S1_DATE, S2_DATE, S3_DATE, S4_DATE, S5_DATE, SCREEN_SENTDATE, GENDER, AGE, GROUP_SL, CONSENT) %>%
+  ##group_by(STATUS, GROUP) %>%
+  ##arrange()
+  filter(SCREEN_SENTDATE >= as.Date("2019-07-01") & SCREEN_SENTDATE <= as.Date("2019-08-31"), STATUS == "Invited S1")
+
+#EXAMPLE//IN PROG FOR AGGREGATE
+# PROJECTED <-INVTEDS1_TO_DATE %>%
+#   filter(CONSENT == 0) %>%
+#   group_by(GROUP, GROUP_SL) %>%
+#   tally()
+#-----
+
+graph_TO_DATE_GENDER <-ggplot(TO_DATE, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Distribution of Gender (All Contacts)", y = "Count", x = "Gender")
+
+graph_INVTEDS1_TO_DATE <-ggplot(INVTEDS1_TO_DATE, aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,)) + 
+  scale_fill_manual(name = "Gender of S1 Participants",
+                    values = c("pink", "orange"),
+                    labels = c("Female", "Male")) +
+  labs(title ="Gender Distribution of All Participants Invited to S1 (To Date)", y = "Number", x = "Group") 
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+#COUNTS OF ALL CONTACTS
+
+SOURCE_COUNT<-TO_DATE %>% 
+  select(SOURCE) %>%
+  group_by(SOURCE) %>%
+  tally()
+
+GENDER_COUNT <-TO_DATE %>% 
+  select(GENDER) %>%
+  group_by(GENDER) %>%
+  tally()
+
+AGE_COUNT <- TO_DATE %>% 
+  select(AGE) %>%
+  group_by(AGE) %>%
+  tally()
+
+SCREEN_COMPLETE_COUNT <- TO_DATE %>% 
+  select(SCREEN_COMPLETEYN) %>%
+  group_by(SCREEN_COMPLETEYN) %>%
+  tally()
+
+new_df<-full_join(SOURCE_COUNT, SCREEN_COMPLETE_COUNT)
+new_df_2 <-full_join(AGE_COUNT, GENDER_COUNT)
+new_new <-full_join(new_df, new_df_2 )
+```
+
+
+## Age and Gender
+
+```{r echo=FALSE, warning=FALSE}
+
+graph_TO_DATE_AGE <-ggplot(TO_DATE, aes(AGE)) +
+   geom_histogram(bins = 15, color = "black", fill = "lightblue") + 
+  labs(title ="Age: All Contacts To Date", y = "Number", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+graph_AGE_ENROLLED <-ggplot(ENROLL_MASTER, aes(AGE)) +
+   geom_histogram(bins = 15, color = "black", fill = "lightblue") + 
+  labs(title ="Age: Scheduled/Enrolled/Completed S1", y = "Number", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+# graph_AGE_INVITED <-ggplot(INVTEDS1_TO_DATE, aes(AGE)) +
+#    geom_histogram(bins = 15, color = "black", fill = "lightblue") + 
+#   labs(title ="Invited to S1", y = "Number", x = "Age") 
+
+graph_GENDER_ENROLLED <-ggplot(ENROLL_MASTER, aes(GENDER)) +
+   geom_bar(bins = 2, color = "black", fill = "lightblue") + 
+  labs(title ="Gender Distribution Invited to S1", y = "Number", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+#gender graphs
+graph_TO_DATE_GENDER <-ggplot(TO_DATE, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Gender: All Contacts To Date", y = "Count", x = "Gender") +
+  theme(plot.title = element_text(size = 10))
+
+graph_S1_GENDER <-ggplot(ENROLL_MASTER, aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Gender: Scheduled/Enrolled/Completed S1", y = "Count", x = "Gender")  +
+  theme(plot.title = element_text(size = 10))
+
+graph_S1_GENDERGROUP <-ggplot(ENROLL_MASTER, aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,))  +
+ labs(title ="Gender: Scheduled/Enrolled/Completed S1 By Group", y = "Number") +
+  theme(plot.title = element_text(size = 10),
+        axis.title = element_text(size = 8)) 
+
+plot_grid(graph_TO_DATE_AGE, graph_AGE_ENROLLED, graph_TO_DATE_GENDER, graph_S1_GENDER, graph_S1_GENDERGROUP, nrow = 3)
+
+
+
+```
+

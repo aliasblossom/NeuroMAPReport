@@ -1,2 +1,2 @@
 # NMAPReports
-NeuroMAP Recruitment Reports
+NeuroMAP Weekly Recruitment Reports
