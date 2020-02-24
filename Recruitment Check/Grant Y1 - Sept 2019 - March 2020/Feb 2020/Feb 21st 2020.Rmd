@@ -35,11 +35,11 @@ library(lubridate)
 library(RColorBrewer)
 library(kableExtra)
 
-START_WEEK <- mdy("02/07/2020") #only change me, set as date of neuromap Startup meeting - 7 days
+START_WEEK <- mdy("02/14/2020") #only change me, set as date of neuromap Startup meeting - 7 days
 GY <- 1 #year of grant, change ?
 RO1_TABLE_CAPTION <- "February R01 Enrollment Targets"
 RO1_TOTAL_CAPTION <- "Cummulative R01 Enrollment To Date (Aug 2019 - Feb 2020)"
-ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 7th - Feb 13th)" 
+ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 13th - Feb 21st)" 
 ```
 
 
@@ -48,13 +48,13 @@ ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 7th - Feb 13th)"
 directory_onedriveH<-file.path("/Users/strength/OneDrive - The Pennsylvania State University/") #set personal directory
 directory_onedriveW<-file.path("/Users/bbh5255/OneDrive - The Pennsylvania State University/") #set personal directory
 directory_work<-file.path("/Users/bbh5255/Box/DEPENd/NeuroMAP/Recruitment/Participant Management/") #set directory
-directory_home<-file.path("/Users/strength/Box/DEPENd/NeuroMAP/Recruitment/Participant Management/") #set directory
+directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
 
 
 #read in data for master file spreadsheet and R01 information - REMOVE PASSWORD FROM MASTER
-MASTER <- read_xlsx(paste0(directory_onedriveW, "NEUROMAP Master V2.xlsx"), sheet = "MasterData")
-ENROLL_OVERVIEW <- read_xlsx(paste0(directory_onedriveW, "NEUROMAP Master V2.xlsx"), sheet = "RO1 Aggregate", col_names = TRUE)
-TRACKER <- read_xlsx(paste0(directory_onedriveW, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
+MASTER <- read_xlsx(paste0(directory_onedriveH, "NEUROMAP Master V2.xlsx"), sheet = "MasterData")
+ENROLL_OVERVIEW <- read_xlsx(paste0(directory_onedriveH, "NEUROMAP Master V2.xlsx"), sheet = "RO1 Aggregate", col_names = TRUE)
+TRACKER <- read_xlsx(paste0(directory_onedriveH, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
 
 
 #tidy up column names for MASTER
@@ -105,7 +105,7 @@ CURRENT_MONTH_GRANT<- month(START_WEEK - months(3)) #month of study (do not chan
 
 
 ```{r Cleaning Acuity Scheduling Data, include=FALSE}
-SCHEDULE <-read_csv(paste0(directory_work, "Acuity Session Reports/schedule2020-02-13.csv")) #read in acuity schedule info
+SCHEDULE <-read_csv(paste0(directory_home, "Acuity Session Reports/all participant_acuity_feb20th.csv")) #read in acuity schedule info
 
 #convert date time to readable format in R
 SCHEDULE$`Start Time (AM/PM)`<-format(strptime(SCHEDULE$`Start Time`, format= '%m/%d/%y %H:%M'), "'%m/%d/%y '%I:%M:%S %p'") #convert time to am/pm from 24 hour clock
@@ -119,6 +119,8 @@ SCHEDULE<-SCHEDULE %>%
   mutate(`Type (Recode)`=case_when(
     .$`Type` == "Session 1" ~ "Session 1",
     .$`Type` == "Session 1 Follow Up (1.5 hours)" ~ "Session 1 FU",
+    .$`Type` == "Session 1 Follow Up (30 minutes)" ~ "Session 1 FU",
+    .$`Type` == "Session 1 Follow Up (3 hours)" ~ "Session 1 FU",
     .$`Type` == "Session 2 (Marissa)" ~ "Session 2",
     .$`Type` == "Session 2 (Mia)" ~ "Session 2",
     .$`Type` == "Session 2 (Austin)" ~ "Session 2",
@@ -130,7 +132,7 @@ SCHEDULE<-SCHEDULE %>%
 
 ```
 
-```{r eval=FALSE, include=FALSE}
+```{r Qualtrics API Credentials, eval=FALSE, include=FALSE}
 q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #Begonias Account
 qualtrics_api_credentials(api_key = q_token, 
                           base_url = "pennstate.ca1.qualtrics.com",
@@ -309,18 +311,14 @@ S4_Report %>%
   scroll_box(width = "100%", height = "300px")
 ```
     
-  )
-```
-
-
 # Enrollment Overview
 
-## RO1 Enrollment Targets For January
+## RO1 Enrollment Targets For February
 
 
 ```{r R01 Enrollment Overview, echo=FALSE}
 
-#Totals for the month
+# Totals for the month
 
 R01_OVERVIEW <-ENROLL_OVERVIEW %>%
   select(
@@ -344,6 +342,7 @@ knitr::kable(
   OVERVIEW_TABLE, 
   caption = RO1_TABLE_CAPTION,
   col.names = c("Diagnostic Group", "Expected Enrollment to Fulfill R01 Timeline in the Month of February", "In Process of Enrollment", "Enrolled in FMRI Group", "Not Enrolled in FMRI Group", "Status TBD", "Excluded"))
+
 ```
 
 *****
@@ -409,7 +408,7 @@ c <-TRACKER %>% select('STUDY PROGRESS') %>%
 *****
 ## Time Series
 
-```{r echo=FALSE, warning=FALSE}
+```{r Time Series Graphs, echo=FALSE, warning=FALSE}
 data <- ENROLL_OVERVIEW 
 
 data$Time_chronological <- factor(data$Time_chronological, levels = c("Apr_2019", "May_2019", "June_2019", "Jul_2019",  "Aug_2019", "Sep_2019", "Oct_2019", "Nov_2019", "Dec_2019", "Jan_2020", "Feb_2020", "Mar_2020"))
@@ -526,18 +525,60 @@ knitr::kable(
 
 <!-- ## All Future Sessions -->
 
-```{r Sessions for the Following Week, eval=FALSE, include=FALSE}
-#all upcomming sessions - i took this off this week because its too much data
-#MUST CHANGE DATE
-UPCOMMING_ALL <- SCHEDULE %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
-dplyr::filter(`Start Time` >= as.Date("2019-11-11") & `Start Time` <= as.Date("2019-11-30"))
+``` {r Acuity - All Upcoming Sessions Overview, eval = FALSE, include = TRUE} 
+
+#number of hours of all scheduled upcomming appointments
+SCHEDULE %>% 
+  select(
+    `First Name`, 
+    `Last Name`, 
+    `Start Time`, 
+    `Type (Recode)`, 
+    `Type`,  
+    `Calendar`) %>%
+  dplyr::filter(`Start Time` >= END_WEEK) %>%
+  group_by(`Type`) %>%
+  tally() %>%
+  mutate(number_hours = case_when(
+    Type == "Session 1" ~ n * 3,
+    Type == "Session 1 Follow Up (1.5 hours)" ~ n * 1.5,
+    Type == "Session 1 Follow Up (3 hours)" ~ n * 3,
+    Type == "Session 2 (Marissa)" ~ n * 2,
+    #.$`Type (Recode) == "Session 2" ~ n[4] * 2,
+    Type == "Session 2 (Mia)" ~ n *2,
+    Type == "Session 3" ~ n *3)) %>%
+  add_tally(number_hours)
+
+%>% ungroup() 
+%>%
+
+
+SCHEDULE %>% 
+  select(
+    `First Name`, 
+    `Last Name`, 
+    `Start Time`, 
+    `Type (Recode)`, 
+    `Type`,  
+    `Calendar`) %>%
+  dplyr::filter(`Start Time` >= END_WEEK & (`Type (Recode)` == "Session 1" | `Type (Recode)` == "Session 1 FU"))) %>%
+    add_tally(number_hours) %>% ungroup()
+ 
+
 # 
 knitr::kable(
 UPCOMMING_ALL, 
   caption = "Sessions for the Following Week",
   col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
 
+
+SCHEDULE %>% select()
+
+TRACKER %>%
+  mutate(NEW_VAR=case_when(
+    .$STATUS == "Scheduled S1" ~ "S1",
 ```
+
 
 <!-- ## Past Week Sessions -->
 ```{r Sessions Last Week, eval=FALSE, include=FALSE}
