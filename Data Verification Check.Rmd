@@ -5,7 +5,7 @@ output: html_notebook
 
 Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
 
-```{r Setup}
+```{r Setup, include=FALSE}
 #setwd("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #may need to change for each person running report
 
 directory_onedriveH<-file.path("/Users/strength/OneDrive - The Pennsylvania State University/") #set personal directory
@@ -14,14 +14,15 @@ directory_work<-file.path("/Users/bbh5255/Documents/DepenD Lab/NeuroMAP/NMAPRepo
 directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
 
 if (!require(easypackages)) {install.packages("easypackages"); library(easypackages) }
-packages("readxl", "tidyverse", "qualtRics", "lubridate", "dataCompareR")
+packages("readxl", "tidyverse", "dbplyr", "tidyr", "qualtRics", "lubridate", "dataCompareR", "kableExtra")
 
 q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #enter qualtrics API Token
 qualtrics_api_credentials(api_key = q_token, 
                           base_url = "pennstate.ca1.qualtrics.com",
-                          install = FALSE, overwrite = TRUE)
+                          install = TRUE, overwrite = TRUE)
 
 TodayDate <- today()
+TodayPlus7 <-TodayDate +7
 
 ```
 
@@ -34,8 +35,8 @@ S3Report<-fetch_survey(surveyID = "SV_8ixbUxRgNWtxuHH", label=TRUE, verbose = TR
 S4Report <-fetch_survey(surveyID = "SV_8tOIVRgh1T4D2g5",  label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE) 
 #convert date to ddtm readable format in R
 
-S3Report$s3_sessioninfo_1_TEXT<-lubridate::mdy(S3Report$s3_sessioninfo_1_TEXT)
-S4Report$s4_sessioninfo_1_TEXT<-lubridate::mdy(S4Report$s4_sessioninfo_1_TEXT)
+#S3Report$s3_sessioninfo_1_TEXT<-lubridate::mdy(S3Report$s3_sessioninfo_1_TEXT)
+#S4Report$s4_sessioninfo_1_TEXT<-lubridate::mdy(S4Report$s4_sessioninfo_1_TEXT)
 
 ```
 
@@ -51,7 +52,14 @@ S1Report<-S1Report %>%
 Tracker <- read_xlsx(paste0(directory_onedriveW, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
 
 Tracker <- Tracker %>%
-  rename(`Email` = "EMAIL")
+  select(ID,
+         EMAIL,
+         PHONE,
+         FIRSTNAME,
+         LASTNAME,
+         `STUDY PROGRESS`
+         ) %>%
+ rename(`Email` = "EMAIL") 
 
 ```
 
@@ -74,13 +82,33 @@ Acuity<-Acuity %>%
     .$`Type` == "Session 2 (Marissa)" ~ "Session 2",
     .$`Type` == "Session 2 (Mia)" ~ "Session 2",
     .$`Type` == "Session 2 (Austin)" ~ "Session 2",
+    .$`Type` == "Session 2 (Grace)" ~ "Session 2",
+    .$`Type` == "Session 2 (Chloe)" ~ "Session 2",
     .$`Type` == "Session 2 (Daniel and Begonia)" ~ "Session 2",
     .$`Type` == "Session 3 (1 hour follow-up)" ~ "Session 3 FU",
     .$`Type` == "Session 3 Follow-Up  (1.5 Hours)" ~"Session 3 FU",
-    .$`Type` == "Session 3" ~ "Session 3"
-    ))
+    .$`Type` == "Session 3" ~ "Session 3",
+    .$`Type` == "SONA Study 1" ~ "Other",
+    .$`Type` == "RA Interviews" ~ "Other"
+    )) %>%
+  select(-c(`Appointment Price`,
+         `Amount Paid Online`,
+         `Certificate Code`,
+         `Date Scheduled`,
+         `Label`,
+         `Appointment ID`,
+         `Notes`,
+         `Paid?`,
+         `Scheduled By`)) %>%
+  dplyr::filter(`Type (Recode)` != "Other") %>%
+  #spread(key = `Type (Recode)`, value = `Session Date`) %>%
+  gather(
+    `Session 1 FU`)
+  
 
 ParticipantData<-dplyr::full_join(Acuity, Tracker, by = "Email")
+
+View(ParticipantData)
 ```
 
 
@@ -90,14 +118,15 @@ ParticipantData<-dplyr::full_join(Acuity, Tracker, by = "Email")
 ParticipantData %>% 
   select(
     `ID`,
-    `First Name`,
-    `Last Name`,
+   # `First Name`,
+   # `Last Name`,
     `Email`,
     `Canceled`,
     `Type`,
     `Session Date`) %>%
   filter(`Session Date`>= LastWeek & `Session Date`<= TodayDate) %>%
-  arrange(ID)
+  arrange(ID) %>%
+  kable(format = "html", escape = F, caption = "Record of Sessions")
 
 ```
 
@@ -120,6 +149,26 @@ Tracker %>%
 
 
 
+```{r}
+
+Tracker %>%
+  select(
+    `ID`,
+    `NAME`,
+    `ACTUAL GROUP`,
+    `STUDY PROGRESS`,
+    `NOTES ABOUT STATUS`,
+    `Email`,
+    `S4 DATE`,
+    `DAYS BETWEEN BASELINE AND S4`,
+    `NOTES`
+  ) %>%
+  filter(`S4 DATE`>= TodayDate & `S4 DATE`<= TodayPlus7) %>%
+  mutate(
+   `MONTHS SINCE BASELINE` = `DAYS BETWEEN BASELINE AND S4`/ 30)
+  #full_join(Acuity, Tracker, by = `Email`) %>%
+  kable(format = "html", escape = F, caption = "S4's in Next 7 Days")
+```
 
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
