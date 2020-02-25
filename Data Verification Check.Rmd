@@ -14,12 +14,15 @@ directory_work<-file.path("/Users/bbh5255/Documents/DepenD Lab/NeuroMAP/NMAPRepo
 directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
 
 if (!require(easypackages)) {install.packages("easypackages"); library(easypackages) }
-packages("readxl", "tidyverse", "qualtRics", "lubridate")
+packages("readxl", "tidyverse", "qualtRics", "lubridate", "dataCompareR")
 
 q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #enter qualtrics API Token
 qualtrics_api_credentials(api_key = q_token, 
                           base_url = "pennstate.ca1.qualtrics.com",
-                          install = TRUE, overwrite = TRUE)
+                          install = FALSE, overwrite = TRUE)
+
+TodayDate <- today()
+
 ```
 
 
@@ -55,6 +58,8 @@ Tracker <- Tracker %>%
 ```{r Cleaning Acuity Scheduling Data, include=FALSE}
 Acuity <-read_csv(paste0(directory_work, "Acuity Session Reports/all participant_acuity_feb20th.csv")) #read in Acuity Acuity info
 
+LastWeek<-TodayDate - 7
+
 #convert date time to readable format in R
 Acuity$`Start Time (AM/PM)`<-format(strptime(Acuity$`Start Time`, format= '%m/%d/%y %H:%M'), "'%m/%d/%y '%I:%M:%S %p'") #convert time to am/pm from 24 hour clock
 Acuity$`Start Time`<-lubridate::mdy_hm(Acuity$`Start Time`) #convert time to R friendly format
@@ -75,14 +80,14 @@ Acuity<-Acuity %>%
     .$`Type` == "Session 3" ~ "Session 3"
     ))
 
-Acuity<-dplyr::full_join(Acuity, Tracker, by = "Email")
+ParticipantData<-dplyr::full_join(Acuity, Tracker, by = "Email")
 ```
 
 
 
-```{r}
+```{r Filter Current Weeks Session}
 
-Acuity %>% 
+ParticipantData %>% 
   select(
     `ID`,
     `First Name`,
@@ -91,10 +96,31 @@ Acuity %>%
     `Canceled`,
     `Type`,
     `Session Date`) %>%
-  filter()
+  filter(`Session Date`>= LastWeek & `Session Date`<= TodayDate) %>%
   arrange(ID)
 
 ```
+
+
+```{r}
+Tracker %>%
+  select(
+    `ID`,
+    `NAME`,
+    `ACTUAL GROUP`,
+    `STUDY PROGRESS`,
+    `NOTES ABOUT STATUS`,
+    `Email`
+  ) %>%
+  filter(`STUDY PROGRESS` == "IN PROG") %>%
+  #full_join(Acuity, Tracker, by = `Email`) %>%
+  kable(format = "html", escape = F, caption = "In Progress Participants")
+
+```
+
+
+
+
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
