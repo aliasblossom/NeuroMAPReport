@@ -3,6 +3,8 @@ title: "Data Missingness Report"
 output: html_notebook
 ---
 
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
 ```{r Setup, include=FALSE}
 #setwd("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #may need to change for each person running report
 
@@ -12,7 +14,7 @@ directory_work<-file.path("/Users/bbh5255/Documents/DepenD Lab/NeuroMAP/NMAPRepo
 directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
 
 if (!require(easypackages)) {install.packages("easypackages"); library(easypackages) }
-packages("readxl", "tidyverse", "dbplyr", "tidyr", "qualtRics", "lubridate", "dataCompareR", "kableExtra", "dataCompareR")
+packages("readxl", "tidyverse", "dbplyr", "tidyr", "qualtRics", "lubridate", "dataCompareR", "kableExtra")
 
 q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #enter qualtrics API Token
 qualtrics_api_credentials(api_key = q_token, 
@@ -24,16 +26,17 @@ TodayPlus7 <-TodayDate +7
 
 ```
 
+
 ```{r Import Qualtrics Data, message=TRUE, include=FALSE}
 surveys<-all_surveys()
 S1Report <-fetch_survey(surveyID = "SV_23S2sjLm5Lmq7Ah", label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE)
 S2Report <-fetch_survey(surveyID = "SV_8jJlCrM3V7m0BoN", label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE)
 S3Report<-fetch_survey(surveyID = "SV_8ixbUxRgNWtxuHH", label=TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE)
 S4Report <-fetch_survey(surveyID = "SV_8tOIVRgh1T4D2g5",  label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE) 
-
 #convert date to ddtm readable format in R
-S3Report$s3_sessioninfo_1<-lubridate::mdy(S3Report$s3_sessioninfo_1)
-S4Report$s4_sessioninfo_1<-lubridate::mdy(S4Report$s4_sessioninfo_1)
+
+#S3Report$s3_sessioninfo_1_TEXT<-lubridate::mdy(S3Report$s3_sessioninfo_1_TEXT)
+#S4Report$s4_sessioninfo_1_TEXT<-lubridate::mdy(S4Report$s4_sessioninfo_1_TEXT)
 
 ```
 
@@ -46,23 +49,23 @@ S1Report<-S1Report %>%
 ```
 
 ```{r Clean Tracker Data}
-Tracker <- read_xlsx(paste0(directory_onedriveH, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
-Tracker$PHONE<-gsub("-", "", Tracker$PHONE)
+Tracker <- read_xlsx(paste0(directory_onedriveW, "NEUROMAP Master V2.xlsx"), sheet = "Tracker")
 
-ParticipantID <- Tracker %>%
-  select(
-    ID,
-    PHONE,
-    `STUDY PROGRESS`) %>%
-  rename(Phone = PHONE) %>%
-  drop_na() 
-ParticipantID$Phone<-as.numeric(ParticipantID$Phone)
+Tracker <- Tracker %>%
+  select(ID,
+         EMAIL,
+         PHONE,
+         FIRSTNAME,
+         LASTNAME,
+         `STUDY PROGRESS`
+         ) %>%
+ rename(`Email` = "EMAIL") 
 
 ```
 
 ```{r Cleaning Acuity Scheduling Data, include=FALSE}
-Acuity <-read_csv(paste0(directory_home, "Acuity Session Reports/schedule2020-02-26.csv"))
-                    
+Acuity <-read_csv(paste0(directory_work, "Acuity Session Reports/all participant_acuity_feb20th.csv")) #read in Acuity Acuity info
+
 LastWeek<-TodayDate - 7
 
 #convert date time to readable format in R
@@ -71,28 +74,23 @@ Acuity$`Start Time`<-lubridate::mdy_hm(Acuity$`Start Time`) #convert time to R f
 Acuity$`Session Date`<- date(Acuity$`Start Time`) # create date only variable for searching purposes
 
 Acuity<-Acuity %>%
-  mutate(
-    `Type (Recode)`= case_when(
-      .$`Type` == "Session 1" ~ "Session 1",
-      .$`Type` == "Session 1 Follow Up (1.5 hours)" ~ "Session 1 FU",
-      .$`Type` == "Session 1 Follow Up (30 minutes)" ~ "Session 1 FU",
-      .$`Type` == "Session 1 Follow Up (3 hours)" ~ "Session 1 FU",
-      .$`Type` == "Session 2 (Marissa)" ~ "Session 2",
-      .$`Type` == "Session 2 (Mia)" ~ "Session 2",
-      .$`Type` == "Session 2 (Austin)" ~ "Session 2",
-      .$`Type` == "Session 2 (Grace)" ~ "Session 2",
-      .$`Type` == "Session 2 (Chloe)" ~ "Session 2",
-      .$`Type` == "Session 2 (Daniel and Begonia)" ~ "Session 2",
-      .$`Type` == "Session 3 (1 hour follow-up)" ~ "Session 3 FU",
-      .$`Type` == "Session 3 Follow-Up  (1.5 Hours)" ~"Session 3 FU",
-      .$`Type` == "Session 3" ~ "Session 3",
-      .$`Type` == "SONA Study 1" ~ "Other",
-      .$`Type` == "RA Interviews" ~ "Other"))
-```
-
-```{r Create Dataframe With IDs, Sessions}
-
-ParticipantData <- Acuity %>%
+  mutate(`Type (Recode)`=case_when(
+    .$`Type` == "Session 1" ~ "Session 1",
+    .$`Type` == "Session 1 Follow Up (1.5 hours)" ~ "Session 1 FU",
+    .$`Type` == "Session 1 Follow Up (30 minutes)" ~ "Session 1 FU",
+    .$`Type` == "Session 1 Follow Up (3 hours)" ~ "Session 1 FU",
+    .$`Type` == "Session 2 (Marissa)" ~ "Session 2",
+    .$`Type` == "Session 2 (Mia)" ~ "Session 2",
+    .$`Type` == "Session 2 (Austin)" ~ "Session 2",
+    .$`Type` == "Session 2 (Grace)" ~ "Session 2",
+    .$`Type` == "Session 2 (Chloe)" ~ "Session 2",
+    .$`Type` == "Session 2 (Daniel and Begonia)" ~ "Session 2",
+    .$`Type` == "Session 3 (1 hour follow-up)" ~ "Session 3 FU",
+    .$`Type` == "Session 3 Follow-Up  (1.5 Hours)" ~"Session 3 FU",
+    .$`Type` == "Session 3" ~ "Session 3",
+    .$`Type` == "SONA Study 1" ~ "Other",
+    .$`Type` == "RA Interviews" ~ "Other"
+    )) %>%
   select(-c(`Appointment Price`,
          `Amount Paid Online`,
          `Certificate Code`,
@@ -101,20 +99,19 @@ ParticipantData <- Acuity %>%
          `Appointment ID`,
          `Notes`,
          `Paid?`,
-         `Scheduled By`,
-         `Start Time`,
-         `End Time`
-         )) %>%
+         `Scheduled By`)) %>%
   dplyr::filter(`Type (Recode)` != "Other") %>%
   #spread(key = `Type (Recode)`, value = `Session Date`) %>%
-  #gather(
-   # `Session 1 FU`)
-  full_join(ParticipantID, by = "Phone")
+  gather(
+    `Session 1 FU`)
+  
 
+ParticipantData<-dplyr::full_join(Acuity, Tracker, by = "Email")
 
-ParticipantData <- ParticipantData[, c(11, 1, 2, 3, 4, 9, 8, 5, 10, 6, 7, 12)]
 View(ParticipantData)
 ```
+
+
 
 ```{r Filter Current Weeks Session}
 
@@ -128,12 +125,13 @@ ParticipantData %>%
     `Type`,
     `Session Date`) %>%
   filter(`Session Date`>= LastWeek & `Session Date`<= TodayDate) %>%
-  arrange(`Session Date`) %>%
+  arrange(ID) %>%
   kable(format = "html", escape = F, caption = "Record of Sessions")
 
 ```
 
-```{r All Participants Marked In Progress Table, include=FALSE}
+
+```{r}
 Tracker %>%
   select(
     `ID`,
@@ -141,7 +139,7 @@ Tracker %>%
     `ACTUAL GROUP`,
     `STUDY PROGRESS`,
     `NOTES ABOUT STATUS`,
-    `EMAIL`
+    `Email`
   ) %>%
   filter(`STUDY PROGRESS` == "IN PROG") %>%
   #full_join(Acuity, Tracker, by = `Email`) %>%
@@ -149,18 +147,18 @@ Tracker %>%
 
 ```
 
-```{r S4's in Next 7 Days}
+
+
+```{r}
 
 Tracker %>%
   select(
     `ID`,
     `NAME`,
-    `GENDER`,
-    `AGE`,
     `ACTUAL GROUP`,
     `STUDY PROGRESS`,
     `NOTES ABOUT STATUS`,
-    `EMAIL`,
+    `Email`,
     `S4 DATE`,
     `DAYS BETWEEN BASELINE AND S4`,
     `NOTES`
@@ -171,3 +169,11 @@ Tracker %>%
   #full_join(Acuity, Tracker, by = `Email`) %>%
   kable(format = "html", escape = F, caption = "S4's in Next 7 Days")
 ```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+

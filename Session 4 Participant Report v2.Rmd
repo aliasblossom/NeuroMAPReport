@@ -1,0 +1,167 @@
+---
+title: "Session 4 Participant Report"
+author: "Begonia"
+date: "2/25/2020"
+output: pdf_document
+fontsize: 11pt 
+geometry: margin=1in
+fig_crop: FALSE 
+
+    
+---
+
+```{r Setup, include=FALSE}
+#setwd("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #may need to change for each person running report
+
+directory_onedriveH<-file.path("/Users/strength/OneDrive - The Pennsylvania State University/") #set personal directory
+directory_onedriveW<-file.path("/Users/bbh5255/OneDrive - The Pennsylvania State University/") #set personal directory
+directory_work<-file.path("/Users/bbh5255/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
+directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/") #set directory
+
+if (!require(easypackages)) {install.packages("easypackages"); library(easypackages) }
+packages("readxl", "tidyverse", "dbplyr", "tidyr", "qualtRics", "lubridate", "dataCompareR", "kableExtra","magrittr", "dataCompareR")
+
+q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #enter qualtrics API Token
+qualtrics_api_credentials(api_key = q_token, 
+                          base_url = "pennstate.ca1.qualtrics.com",
+                          install = TRUE, overwrite = TRUE)
+
+TodayDate <- today()
+TodayPlus7 <-TodayDate +7
+LastWeek<-TodayDate - 7
+
+```
+
+```{r Clean Tracker Data, include=FALSE}
+Tracker <- read_xlsx(paste0(directory_onedriveH, "NEUROMAP Master V2.xlsx"), sheet = "Tracker") # Import Data
+
+TrackerColNames <- colnames(Tracker) %>% #Convert Column Names to to Title Case
+  str_to_title()
+
+Tracker$PHONE<-gsub("-", "", Tracker$PHONE)
+
+ParticipantID <- Tracker %>%
+  select(
+    ID,
+    PHONE) %>%
+    #`STUDY PROGRESS`) %>%
+  rename(Phone = PHONE) %>%
+  drop_na() 
+ParticipantID$Phone<-as.numeric(ParticipantID$Phone)
+
+```
+
+```{r Cleaning Acuity Scheduling Data, include=FALSE}
+Acuity <-read_csv(paste0(directory_home, "Acuity Session Reports/schedule2020-02-26.csv"))
+                    
+#convert date time to readable format in R
+Acuity$`Start Time (AM/PM)`<-format(strptime(Acuity$`Start Time`, format= '%m/%d/%y %H:%M'), "'%m/%d/%y '%I:%M:%S %p'") #convert time to am/pm from 24 hour clock
+Acuity$`Start Time`<-lubridate::mdy_hm(Acuity$`Start Time`) #convert time to R friendly format
+Acuity$`Session Date`<- date(Acuity$`Start Time`) # create date only variable for searching purposes
+
+Acuity<-Acuity %>%
+  mutate(
+    `Type (Recode)`= case_when(
+      .$`Type` == "Session 1" ~ "Session 1",
+      .$`Type` == "Session 1 Follow Up (1.5 hours)" ~ "Session 1 FU",
+      .$`Type` == "Session 1 Follow Up (30 minutes)" ~ "Session 1 FU",
+      .$`Type` == "Session 1 Follow Up (3 hours)" ~ "Session 1 FU",
+      .$`Type` == "Session 2 (Marissa)" ~ "Session 2",
+      .$`Type` == "Session 2 (Mia)" ~ "Session 2",
+      .$`Type` == "Session 2 (Austin)" ~ "Session 2",
+      .$`Type` == "Session 2 (Grace)" ~ "Session 2",
+      .$`Type` == "Session 2 (Chloe)" ~ "Session 2",
+      .$`Type` == "Session 2 (Daniel and Begonia)" ~ "Session 2",
+      .$`Type` == "Session 3 (1 hour follow-up)" ~ "Session 3 FU",
+      .$`Type` == "Session 3 Follow-Up  (1.5 Hours)" ~"Session 3 FU",
+      .$`Type` == "Session 3" ~ "Session 3",
+      .$`Type` == "SONA Study 1" ~ "Other",
+      .$`Type` == "RA Interviews" ~ "Other"))
+```
+
+```{r Create Dataframe With IDs, include=FALSE}
+
+ParticipantData <- Acuity %>%
+  select(-c(`Appointment Price`,
+         `Amount Paid Online`,
+         `Certificate Code`,
+         `Date Scheduled`,
+         `Label`,
+         `Appointment ID`,
+         `Notes`,
+         `Paid?`,
+         `Scheduled By`,
+         `Start Time`,
+         `End Time`
+         )) %>%
+  dplyr::filter(`Type (Recode)` != "Other") %>%
+  #spread(key = `Type (Recode)`, value = `Session Date`) %>%
+  #gather(
+   # `Session 1 FU`)
+  full_join(ParticipantID, by = "Phone")
+
+
+ParticipantData <- ParticipantData[, c(11, 1, 2, 3, 4, 9, 8, 5, 10, 6, 7, 12)]
+```
+
+```{r S4 in Next 7 Days, echo=FALSE}
+
+S4Data <-Tracker %>%
+  select(
+    `ID`,
+    `GENDER`,
+    `AGE`,
+    `ACTUAL GROUP`,
+    `STUDY PROGRESS`,
+    `NOTES ABOUT STATUS`,
+    `S4 DATE`,
+    `DAYS BETWEEN BASELINE AND S4`
+    ) %>%
+  #filter(`S4 DATE`>= TodayDate & `S4 DATE`<= TodayPlus7) %>%
+  mutate(`MONTHS SINCE BASELINE` = `DAYS BETWEEN BASELINE AND S4`/ 30)
+
+#set date variables for creating search limits
+
+WeekStart <-mdy("02/24/2020")
+WeekEnd <- WeekStart + 4
+
+S4Data %>% select(
+  ID,
+  GENDER,
+  AGE,
+  `NOTES ABOUT STATUS`,
+  `S4 DATE`,
+  `MONTHS SINCE BASELINE`) %>%
+  filter(`S4 DATE`>= WeekStart) %>%
+  arrange(`S4 DATE`) %>%
+  kable(format = "latex", caption = "S4 in Next 7 Days", booktabs = T) %>%
+  kable_styling(position = "center")
+
+
+```
+
+```{r Session 3}
+TrackerS3Details <- Tracker %>%
+  select(
+    ID,
+    `ACTUAL GROUP`,
+    `NOTES ABOUT STATUS`,
+    `S3 NOTE`,
+    `S3 FU`,
+    PHONE,
+    `STUDY PROGRESS`) %>%
+  rename(Phone = PHONE)
+
+%>%
+  drop_na() 
+ParticipantID$Phone<-as.numeric(ParticipantID$Phone)
+
+ParticipantData %>%
+  select(ID,
+        `Session Date`,
+        `Type (Recode)`,
+        `Calendar`,
+        `STUDY PROGRESS`) %>%
+  filter((`Session Date`>= TodayDate & `Session Date`<= TodayPlus7) & `Type (Recode)` == "Session 3"
+
+```
