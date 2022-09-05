@@ -21,7 +21,6 @@ directory_home<-file.path("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPRep
 if (!require(easypackages)) {install.packages("easypackages"); library(easypackages) }
 packages("readxl", "tidyverse", "dbplyr", "tidyr", "qualtRics", "lubridate", "dataCompareR", "kableExtra","magrittr", "dataCompareR")
 
-q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #enter qualtrics API Token
 qualtrics_api_credentials(api_key = q_token, 
                           base_url = "pennstate.ca1.qualtrics.com",
                           install = TRUE, overwrite = TRUE)
