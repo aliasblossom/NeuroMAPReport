@@ -1,0 +1,1383 @@
+---
+title: "Weekly Recruitment Check"
+author: 
+output:
+  html_document:
+    code_folding: hide
+    df_print: kable
+    mathjax: default
+    number_sections: no
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    fig_width: 9 
+    fig_height: 6 
+  pdf_document:
+    code_folding: hide
+    df_print: kable
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+params:
+  grant_year: 
+    label: "Grant Year"
+    input: numeric
+    value: 1
+    step: 1
+    min: 1
+    max: 6
+  report_start:
+    label: "Start Date"
+    input: date
+    value: "2019-07-01"
+    format: "mm/dd/yyyy"
+  report_end:
+    label: "End Date"
+    input: date
+    value: "2020-07-01"
+    format: "mm/dd/yyyy"
+  acuity_report:
+    label: "Acuity Session Report"
+    value: 
+    input: file
+
+  
+    
+---
+
+```{r setup, include=FALSE}
+if (!require(pacman)) { install.packages("pacman"); library(pacman) }
+p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts")
+
+#load R functions
+source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
+
+RO1_TOTAL_CAPTION <- "Cummulative R01 Enrollment To Date (Aug 2019 - March 2020)"
+ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 28th - March 6th)" 
+```
+
+```{r Set Dates, include=FALSE}
+#code for establishing the day of report for the study
+START_LWEEK <-params$report_start - days (7) 
+END_WEEK <-params$report_start + days(7) 
+END_NWEEK <- END_WEEK +days (7)
+
+CURRENT_MONTH_GRANT<- month(params$report_start - months(3)) #month of study (do not change)
+
+```
+
+```{r NeuroMAP Master Tab Tidying, include=FALSE}
+
+ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/NEUROMAP Master V2_Copy.xlsx"
+
+neuroMAP_master<- ws_path %>% excel_sheets() %>%
+  set_names() %>%
+  map_dfr(read_excel, path = path)
+
+
+  load_pdata(account = "strength", workbook = "Master")
+EnrollOverview <- load_pdata(account = "strength", workbook = "Enroll Overview")
+
+Master<- read_excel(ws_path, sheet = "MasterData")
+
+#tidy up column names for Master
+
+Master<-Master %>% 
+  rename(
+    SCREEN_SENTDATE = "SCREEN: SENT DATE",
+    SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE", 
+    SCREEN_COMPLETEYN = "SCREEN: COMPLETE Y/N", INEL_CODE = "INELEGIBILITY CODE", 
+    INEL_PHASE ="PHASE DEEMED INELIGIBLE", 
+    INEL_YN = "ELIGIBLE YN")
+
+#create record of start month and year for participants
+Master$SCREEN_SENTDATE <- as.POSIXct(strptime(Master$SCREEN_SENTDATE, format = '%Y-%m-%d'))
+Master$SCREEN_COMPLETEDATE <- as.POSIXct(strptime(Master$SCREEN_COMPLETEDATE, format = '%Y-%m-%d'))
+#Master$S1_DATE <- as.POSIXct(strptime(Master$S1_DATE, format = '%Y-%m-%d'))
+
+Master$SCREEN_SENT_MONTH <- format(Master$SCREEN_SENTDATE, '%m')
+Master$SCREEN_SENT_YEAR <- format(Master$SCREEN_SENTDATE, '%Y')
+
+Master$SCREEN_COMPLETE_MONTH <- format(Master$SCREEN_COMPLETEDATE, '%m')
+Master$SCREEN_COMPLETE_YEAR <- format(Master$SCREEN_COMPLETEDATE, '%Y')
+
+#Master$S1_MONTH <- format(Master$S1_DATE, '%m')
+#Master$S1_YEAR <- format(Master$SCREEN_COMPLETEDATE, '%Y')
+
+#factorize source
+
+#Master$STATUS <-factor(Master$STATUS, levels = c("Completed S2", "Completed screen", "Inquiry", "Invited S1", "No longer interested", "Scheduled S1", "Screen sent"))
+levels(Master$STATUS)[levels(Master$STATUS)=="Screen sent"] <- "Screen Sent, Not Completed"
+levels(Master$STATUS)[levels(Master$STATUS)=="Completed screen"] <- "Ineligible After Screen"
+
+Master$SOURCE[is.na(Master$SOURCE)] <- "Unknown"
+```
+
+
+```{r Import and Clean Tracker Data, include=FALSE}
+#establish path for file, load enrolled participant data
+Tracker <-load_pdata("strength", "Tracker")
+
+Tracker <- Tracker %>%
+#rename column names
+  rename(
+    R01_ENROLLMENT = "FMRI GROUP (Y/N)", 
+    STATUS = "NOTES ABOUT STATUS") %>%
+#create variable with participant status 
+  mutate(`Status - Recode` = case_when(
+    .$STATUS == "Scheduled S1" ~ "S1",
+    .$STATUS == "Canceled S1" ~ "Not Enrolled",
+    .$STATUS == "Scheduled S1 FU" ~ "S1",
+    .$STATUS == "Completed S1" ~ "Stuck",
+    .$STATUS == "Scheduled S2" ~ "S2",
+    .$STATUS == "Completed S2" ~ "Stuck",
+    .$STATUS == "Scheduled S3, Scheduled S4" ~ "S3/S4 Scheduled",
+    .$STATUS == "Scheduled S3" ~ "S3",
+    .$STATUS == "S3 Not Completed" ~ "Stuck",
+    .$STATUS == "Completed S3" & .$R01_ENROLLMENT == "Y" ~ "Scan Needed",
+    .$STATUS == "Completed S3" & .$R01_ENROLLMENT == "N" ~ "No fMRI - Completed T1",
+    .$STATUS == "Scheduling S4" ~ "Scheduling",
+    .$STATUS == "Invited S3" ~ "Scheduling",
+    .$STATUS == "Ineligible" ~ "Ineligible",
+    .$STATUS == "Non Responsive" ~ "MIA",
+    .$STATUS == "Completed S4" ~ "fMRI - Completed T1",
+    .$STATUS == "Non Responsive/Missed Session/Stuck" ~ "Stuck",
+    .$STATUS == "Scheduled S4" ~ "S4",
+    .$STATUS == "Scheduled S3, Completed S4" ~ "S3 Scheduled, S4 Completed",
+    .$STATUS == "Excluded" ~ "Ineligible",
+    .$STATUS == "Completed S3, Scheduled S4" ~ "S4",
+    .$`STUDY PROGRESS` == "Mia" ~ "MIA"))
+# ) %>%
+  # select(NEW_VAR) %>%
+  # drop_na()%>%
+  # dplyr::filter(!NEW_VAR %in% c("NR", "INEL")) %>%
+  # ggplot(aes(x=NEW_VAR)) +
+  # geom_bar(stat="count")
+
+#TRACKER$`STUDY PROGRESS`<-TRACKER$`STUDY PROGRESS` %>% str_to_title() 
+
+  # ) %>%
+  # select(NEW_VAR) %>%
+  # drop_na()%>%
+  # dplyr::filter(!NEW_VAR %in% c("NR", "INEL")) %>%
+  # ggplot(aes(x=NEW_VAR)) +
+  # geom_bar(stat="count")
+
+#Master$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", Master$NAME, perl = TRUE) # remove names and make initials
+#TRACKER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", TRACKER$NAME, perl = TRUE) # remove names and make initials TRACKER
+
+#TRACKER$`S1 FU 1`<- as_date(TRACKER$`S1 FU 1`)
+```
+
+```{r Cleaning Acuity Scheduling Data, include=FALSE}
+Acuity <- read_csv(params$acuity_report)
+ #read in acuity schedule info
+
+#convert date time to readable format in R
+Acuity$`Start Time (AM/PM)`<-format(strptime(Acuity$`Start Time`, format= '%m/%d/%y %H:%M'), "'%m/%d/%y '%I:%M:%S %p'") #convert time to am/pm from 24 hour clock
+Acuity$`Start Time`<-lubridate::mdy_hm(Acuity$`Start Time`) #convert time to R friendly format
+Acuity$`Session Date`<- date(Acuity$`Start Time`) # create date only variable for searching purposes
+
+Acuity$Type
+
+
+Acuity<-Acuity %>%
+  mutate(`Type (Recode)`=case_when(
+    .$Type == "Session 1" ~ "Session 1",
+    .$Type == "Session 1 Follow Up (1.5 hours)" ~ "Session 1 FU",
+    .$Type == "Session 1 Follow Up (30 minutes)" ~ "Session 1 FU",
+    .$Type == "Session 1 Follow Up (3 hours)" ~ "Session 1 FU",
+    .$Type == "Session 2 (Marissa)" ~ "Session 2",
+    .$Type == "Session 2 (Grace)" ~ "Session 2",
+    .$Type == "Session 2 (Mia)" ~ "Session 2",
+    .$Type == "Session 2 (Austin)" ~ "Session 2",
+    .$Type == "Session 2 (Daniel and Begonia)" ~ "Session 2",
+    .$Type == "Session 3 (1 hour follow-up)" ~ "Session 3 FU",
+    .$Type == "Session 3 Follow-Up  (1.5 Hours)" ~"Session 3 FU",
+    .$Type == "Session 3" ~ "Session 3",
+    .$Type == "SONA Study 1" ~ "Other",
+    .$Type == "RA Interviews" ~ "Other"))
+
+```
+
+```{r Dygraph Needs Work, eval=FALSE, include=FALSE}
+
+Acuity.timeseries.Beg<-Acuity %>%
+  select(`Session Date`,
+        Calendar,
+        `Type (Recode)`) %>% 
+  rename(BSessionDate = `Session Date`) %>%
+  dplyr::filter(Calendar == "Begonia Herbert-Ramirez") %>%
+  select(-Calendar) %>%
+  group_by(BSessionDate) %>%
+  count()
+
+BSessionDate<-as.Date(Acuity.timeseries.Beg$BSessionDate)
+Acuity.timeseries.Beg<-xts(x = Acuity.timeseries.Beg, order.by = BSessionDate)
+
+Acuity.timeseries.Dan<-Acuity %>%
+  select(`Session Date`,
+        Calendar,
+        `Type (Recode)`) %>% 
+  rename(DSessionDate = `Session Date`) %>%
+  dplyr::filter(Calendar == "Daniel Parr") %>%
+  select(-Calendar) %>%
+  group_by(DSessionDate) %>%
+  count()
+DSessionDate<-as.Date(Acuity.timeseries.Dan$DSessionDate)
+
+Acuity.timeseries.Dan<-xts(x = Acuity.timeseries.Dan, order.by = DSessionDate)
+
+test<-cbind(Acuity.timeseries.Dan, Acuity.timeseries.Beg)
+
+dygraph(test) %>%
+  dySeries("n", label = "Daniel") %>%
+  dySeries("n.1", label = "Begonia") %>%
+  dyOptions(drawPoints = TRUE, pointSize = 2)
+
+```
+
+```{r Qualtrics API Credentials, include=FALSE}
+q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #Begonias Account
+qualtrics_api_credentials(api_key = q_token, 
+                          base_url = "pennstate.ca1.qualtrics.com",
+                          install = TRUE, overwrite = TRUE)
+```
+
+
+```{r Import Qualtrics Data, message=TRUE, include=FALSE}
+surveys<-all_surveys()
+S3_Report<-fetch_survey(surveyID = "SV_8ixbUxRgNWtxuHH", label=TRUE, verbose = TRUE, convert = TRUE, force_request = TRUE)
+S4_Report <-fetch_survey(surveyID = "SV_8tOIVRgh1T4D2g5",  label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE) 
+#convert date to ddtm readable format in R
+S3_Report$s3_sessioninfo_1<-lubridate::mdy(S3_Report$s3_sessioninfo_1)
+S4_Report$s4_sessioninfo_1<-lubridate::mdy(S4_Report$s4_sessioninfo_1)
+```
+
+```{r S3 Report Data Cleaning, include=FALSE}
+
+S3_Report <-S3_Report  %>%
+  rename(`S3Date` = s3_sessioninfo_1,
+         `ID` = s3_sessioninfo_4,
+         `Overall Rating` = s3overall_score_1,
+         `Researcher` = s3_sessioninfo_3,
+         `Vanilla Baseline Rating (Physio)` = s3taskratings.VB_score_1,
+         `Vanilla Baseline Rating (EyeTraking)` = s3taskratings.VB_score_2,
+         `Vanilla Baseline Rating (Behavior)` = s3taskratings.VB_score_3 ,
+         `Vanilla Baseline Notes` = s3taskratings.VB_note_1,
+         `DTK Rating (Physio)` = s3taskratings.DTK_score_1,
+         `DTK Rating (EyeTraking)` = s3taskratings.DTK_score_2 ,
+         `DTK Rating (Behavior)` = s3taskratings.DTK_score_3,
+         `DTK Notes` = s3taskratings.DTK_note_1,
+         `Mushrooms Rating (Physio)` = s3taskratings.shrooms_score_1,
+         `Mushrooms Rating (EyeTraking)` = s3taskratings.shrooms_score_2,
+         `Mushrooms Rating (Behavior)` = s3taskratings.shrooms_score_3,
+         `Mushroom Notes` = s3taskratings.shrooms_note_1,
+         `Neighborhood Rating (Physio)` = s3taskratings.neighborhood_score_1,
+         `Neighborhood Rating (EyeTraking)` = s3taskratings.neighborhood_score_2,
+         `Neighborhood Rating (Behavior)` = s3taskratings.neighborhood_score_3,
+         `Neighborhood Notes` = s3taskratings.neighborhood_note_1,
+         `Vending Machine Rating (Physio)` = s3taskratings.vm_score_1,
+         `Vending Machine Rating (EyeTraking)` = s3taskratings.vm_score_2,
+         `Vending Machine Rating (Behavior)` = s3taskratings.vm_score_3,
+         `Vending Machine Notes` = s3taskratings.vm_note_1) %>%
+  filter(DistributionChannel != "preview")
+```
+
+
+```{r Session 4 Report Data Cleaning, include=FALSE}
+S4_Report<-S4_Report %>%
+  rename(S4Date = s4_sessioninfo_1,
+         `ID` = s4_sessioninfo_4,
+         `RA` = s4_sessioninfo_3,
+         `Overall Rating` = s4overall_score_1,
+         `Physio Rating`= s4section_score_1,
+         `ET Rating` = s4section_score_2,
+         `Pre Scan Rating`= s4section_score_3,
+         `Loca/Struc/Pre-Rest Rating` = s4section_score_4,
+         `Pav Rating` = s4section_score_5,
+         `Instrumental Rating` = s4section_score_6,
+         `PIT Rating` = s4section_score_7,
+         `Post-Rest Rating` = s4section_score_8,
+        `Transfer Task Rating` = s4section_score_9,
+        `Physio Notes` =  s4physio_notes,
+        `EyeTraking Notes`= s4eyetracking_notes,
+        `Mock Scanner Time` = s4prescan_notes,
+    `Localizer, Structural and Pretask Resting State` = s4pretask_notes,
+    `Post Task Resting State Scan` = s4postresting_notes,
+    `Transfer Task` = s4transfer_notes,
+    `Pav Notes` = s4pav_notes,
+    `Instrumental Notes` = s4instrumental_notes,
+    `PIT Notes` = s4pit_notes) %>%
+  filter(DistributionChannel != "preview")
+
+```
+
+```{r CREATE R01 Targets, eval=FALSE, include=FALSE}
+
+#first I created a new object called Flow which added columns with the grant month/year participants enrolled in the study.
+#Then I added new columns using mutate which "coded" the outcome of each participant, i.e. assigned to fmri group, excluded
+#Then I dropped everyone who didn't have a group assigned, these are NAs in the tracker xlsx file.
+
+Flow<-Tracker %>%
+  select(
+    "ID",
+    "S1 DATE",
+    "S1 FU 1",
+    "S2 DATE",
+    "GROUP",
+    "R01_ENROLLMENT",
+    "ELIGIBLE?",
+    "STUDY PROGRESS") %>%
+  #drop_na() %>%
+  mutate(
+    EnrollMonth = month(`S1 DATE`),
+    EnrollYear = year(`S1 DATE`),
+    GrantYear = if_else((EnrollMonth %in% 4:12 & EnrollYear == 2019) | (EnrollMonth %in% 1:3 & EnrollYear == 2020), "Y1",
+                        if_else((EnrollMonth %in% 4:12 & EnrollYear == 2020) | (EnrollMonth %in% 1:3 & EnrollYear == 2021), "Y2", 
+                                if_else((EnrollMonth %in% 4:12 & EnrollYear == 2021) | (EnrollMonth %in% 1:3 & EnrollYear == 2022), "Y3",
+                                        if_else((EnrollMonth %in% 4:12 & EnrollYear == 2022) | (EnrollMonth %in% 1:3 & EnrollYear == 2023), "Y4",
+                                                if_else((EnrollMonth %in% 4:12 & EnrollYear == 2023) | (EnrollMonth %in% 1:3 & EnrollYear == 2024),"Y5",
+                                                        if_else((EnrollMonth %in% 4:12 & EnrollYear == 2024) | (EnrollMonth %in% 1:3 & EnrollYear == 2025), "Y6", NA_character_)))))),
+    #Consent = if_else(`S1 DATE` >=today(), "No","Yes"),
+    Status = case_when(
+      `S1 DATE` >= today() ~ "NC", # NC - no consent given, i.e. Acuityd for S1
+      `ELIGIBLE?` == "N0" | `R01_ENROLLMENT` == "EX"  ~ "X", # X = Excluded
+      (`ELIGIBLE?` == "YES" & `R01_ENROLLMENT` == "Y") & (`STUDY PROGRESS` != "MIA")  ~ "R", # R = enrolled in FMRI group
+      (`ELIGIBLE?` == "UNKNOWN" & `S1 DATE` >= today()) & ((!is.na(`S1 FU 1`) | !is.na(`S2 DATE`))) ~ "TBD", #Case Conf, status TBD
+      `ELIGIBLE?` == "UNKNOWN" & `S1 DATE` > today() & (is.na(`S1 FU 1`) | is.na(`S1 FU 1`)) ~ "ND", #C - Missed S1, not enrolled but not rescheduled
+      R01_ENROLLMENT == "N" & `S1 DATE` <= today() ~ "E", # E = Excluded participants
+      is.na(`S1 DATE`) ~ "ND", # NO DATE
+      `STUDY PROGRESS` == "MIA" & `S1 DATE` <= today() | `STUDY PROGRESS` == "MIA" ~ "MIA",
+      `STUDY PROGRESS` == "NOT ENROLLED - MISSED S1" | `STUDY PROGRESS` == "NOT ENROLLED" ~ "ND", #C - Missed S1, not enrolled but not rescheduled
+    (`STUDY PROGRESS` == "CASE CONF") | (`ELIGIBLE?` == "UNKNOWN" & `STUDY PROGRESS` == "IN PROG") ~ "TBD")) %>%
+  select(-c(
+    "S1 FU 1",
+    "S2 DATE",
+    "STUDY PROGRESS",
+    "ELIGIBLE?")) %>%
+filter(!is.na(GROUP))
+
+#ignore this below for now
+# 
+# FlowStatusCount <-Flow %>%
+#   group_by(GROUP, EnrollMonth) %>%
+#   add_count(Status, name = "Count of Status")
+
+# 
+# 
+# 
+# Flow %>% group_by(GROUP)
+# 
+# df <-Flow %>%
+#   filter(EnrollMonth == CURRENT_MONTH_GRANT)
+
+#Then I created a df which
+df<-FlowStatusCount %>% select(
+  ID,
+  GrantYear,
+  EnrollYear,
+  EnrollMonth,
+  GROUP,
+  #`Count of Status`,
+  Status) %>% 
+  filter(GrantYear == "Y1") %>%
+  group_by(Status, GROUP, EnrollMonth) %>%
+  summarize(n = n())
+
+
+%>%
+  pivot_wider(
+      names_from = "Status",
+      values_from = "Count of Status",
+      ) 
+  #group_by(Status, GROUP, EnrollMonth) %>%
+  #summarize(n = n())
+  
+  
+  spread(value = `Count of Status`, key = Status) %>%
+  rename(
+    "ETC Group" = E,
+    "Projected" = NC,
+    "Missed Enrollment" = ND,
+    "fMRI Group" = R,
+    "Status TBD" = TBD,
+    "Excluded" = X) %>%
+  #add_column("Expected") %>%
+  #gather(key= GROUP, value = GROUP)
+
+  
+df %>% add_count(EnrollMonth)
+
+```
+
+
+```{r eval=FALSE, include=FALSE}
+Flow %>%
+  filter(Consent == "Yes" & R01_ENROLLMENT == "Y") %>%
+  group_by(GROUP)%>% 
+  add_count(EnrollMonth, name = "Projected")
+
+
+Actual_Enroll<-Flow %>%
+  filter(Consent == "Yes" & R01_ENROLLMENT == "Y") %>%
+  group_by(GROUP, EnrollMonth) %>%
+  summarise()
+
+Projected_Enroll<-Flow %>%
+  filter(Consent == "No" & `ELIGIBLE?` == "UNKNOWN") %>%
+  group_by(GrantYear, GROUP, EnrollMonth) %>%
+  tally(n = "Projected Enrollment") %>%
+  add_count(n)
+
+#full_join(Actual_Enroll, Projected_Enroll, by =)
+
+Flow %>%
+  
+```
+
+```{r eval=FALSE, include=FALSE}
+
+#change me if enrollment plans change
+#variables for number of participants to enroll each month by year, based off of initial study timeline pre move.
+
+ExpecEnrollY1 <- c(0,0,0,0,1,1,2,2,1,2,2,2)
+ExpecEnrollY1<-rep(ExpecEnrollY1,3)
+
+ExpecEnrollY2 <- c(2,2,2,1,2,2,2,2,1,1,2,2)
+ExpecEnrollY2<-rep(ExpecEnrollY2,3)
+
+ExpecEnrollY2Fu <-23
+ExpecEnrollY3 <- c(2,2,2,1,2,2,2,2,1,1,2,2)
+ExpecEnrollY3<-rep(ExpecEnrollY3,3)
+
+ExpecEnrollY4 <- c(2,2,1,1,1,2,2,2,1,1,2,2)
+ExpecEnrollY4<-rep(ExpecEnrollY4,3)
+
+ExpecEnrollY5 <- c(0,0,0,0,0,0,0,0,0,0,0,0)
+ExpecEnrollY5<-rep(ExpecEnrollY5,3)
+
+ExpecEnrollY6 <- c(0,0,0,0,0,0,0,0,0,0,0,0)
+ExpecEnrollY6<-rep(ExpecEnrollY6,3)
+
+
+
+ExpecEnrollmentTable<-tibble(
+  `Grant Year` = rep(c(1,2,3,4,5,6), each = 36),
+  `Grant Month` = rep(1:12, times = 18),
+  #`Time_Chronological` = rep(seq(mdy("04/01/2019"), mdy("03/01/2025"), by = "months"),3), *make this case_when mutate
+  `GROUP`= rep(c("BPD", "SAD", "HC"), times = 6, each = 12),
+  `Expected Enrollment` = c(ExpecEnrollY1, ExpecEnrollY2, ExpecEnrollY3, ExpecEnrollY4, ExpecEnrollY5, ExpecEnrollY6))
+
+
+ExpecEnrollmentTable %>%
+  mutate()
+
+ExpecEnrollmentTable
+  
+```
+
+******
+# Session Reports {.tabset}
+******
+## Session 3 {.tabset .tabset-pills}
+
+### Overview
+
+```{r Session 3 Report Ratings, echo=FALSE}
+S3_Report %>% 
+  select("S3Date",
+         "ID",
+         "Researcher",
+         "Overall Rating",
+         "Vanilla Baseline Rating (Physio)",
+         "Vanilla Baseline Rating (EyeTraking)",
+         "Vanilla Baseline Rating (Behavior)",
+         "DTK Rating (Physio)",
+         "DTK Rating (EyeTraking)",
+         "DTK Rating (Behavior)",
+         "Mushrooms Rating (Physio)",
+         "Mushrooms Rating (EyeTraking)",
+         "Mushrooms Rating (Behavior)",
+         "Neighborhood Rating (Physio)" ,
+         "Neighborhood Rating (EyeTraking)" ,
+         "Neighborhood Rating (Behavior)",
+         "Vending Machine Rating (Physio)",
+         "Vending Machine Rating (EyeTraking)" ,
+         "Vending Machine Rating (Behavior)") %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+ # mutate(
+  #  `Overall Rating` = cell_spec (`Overall Rating`, "html", 
+   #                               color = if_else (`Overall Rating` > 3, "green",
+    #                              if_else(`Overall Rating` == "NA", "blue", "red")))) %>%
+  kable(format = "html", escape = F, caption = "Session 3 Ratings",
+         col.names = c("Date", "ID", "RA", "Overall", "P", "ET", "B", "P", "ET", "B","P", "ET", "B","P", "ET", "B", "P", "ET", "B")) %>%
+  kable_styling(bootstrap_options = "condensed", full_width = F) %>%
+  add_header_above(c(" " = 4, "Vanilla Baseline" = 3, "DTK" = 3, "Mushrooms" = 3, "Neighborhood" = 3, "Vending Machine" = 3)) %>%
+  footnote(
+  general = "1 = serious issues with data, i.e. participant found out their parent was ill during the session, all the tasks failed, participant was asleep etc. 
+    2 = 40-60 % of the data/session had problems
+    3 = A couple of small problems but overall good
+    4 = One small problem 
+    5 = Don't need to talk about it :) Session was perfect!",
+  general_title = "Overall Rating Scale",
+  footnote_as_chunk = F, title_format = c('italic', "underline"))
+  #scroll_box(width = "100%", height = "400px")
+```
+******
+### Vanilla Baseline Notes
+******
+
+```{r Session 3 Detailed Reports - Vanilla Baseline Notes, echo=FALSE}
+S3_Report %>% 
+  select(
+    S3Date,
+    ID,
+    Researcher,
+    `Vanilla Baseline Notes`
+    ) %>%
+  #drop_na(`Neighborhood`) %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable(col.names = (c("Date", "ID", "Researcher", "Notes"))) %>%
+  #add_header_above(header = "Header Formating") %>%
+  kable_styling(full_width = T, fixed_thead = T) %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "200px")
+
+```
+### Neighborhood Notes
+
+```{r Session 3 Detailed Reports - Neighborhood Notes, echo=FALSE}
+S3_Report %>% 
+  select(
+    S3Date,
+    ID,
+    Researcher,
+    `Neighborhood Notes`
+    ) %>%
+  #drop_na(`Neighborhood`) %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable(col.names = c("Date", "ID", "Researcher", "Notes")) %>%
+  #add_header_above(header = "Header Formating") %>%
+  kable_styling(full_width = F, fixed_thead = T) %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+### Vending Machine Notes
+
+```{r Session 3 Detailed Reports - Vending Machine Notes, echo=FALSE}
+S3_Report %>% 
+  select(
+    S3Date,
+    ID,
+    Researcher,
+    `Vending Machine Notes`
+    ) %>%
+  #drop_na(`Neighborhood`) %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable(col.names = c("Date", "ID", "Researcher", "Notes")) %>%
+  #add_header_above(header = "Header Formating") %>%
+  kable_styling(full_width = F, fixed_thead = T) %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+### DTK Notes
+
+```{r Session 3 Detailed Reports - DTK Notes, echo=FALSE}
+S3_Report %>% 
+  select(
+    S3Date,
+    ID,
+    Researcher,
+    `DTK Notes`
+    ) %>%
+  #drop_na(`Neighborhood`) %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable(col.names = c("Date", "ID", "Researcher", "Notes")) %>%
+  #add_header_above(header = "Header Formating") %>%
+  kable_styling(full_width = F, fixed_thead = T) %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "200px")
+```
+
+### Sorting Mushroom Notes
+```{r Session 3 Detailed Reports - Sorting Mushroom Notes, echo=FALSE}
+S3_Report %>% 
+  select(
+    "S3Date",
+    "ID",
+    "Researcher",
+    "Mushroom Notes"
+    )%>%
+  #drop_na(`Neighborhood`) %>%
+  dplyr::filter((S3Date>= params$report_start & S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable(col.names = c("Date", "ID", "Researcher", "Notes")) %>%
+  #add_header_above(header = "Header Formating") %>%
+  kable_styling(full_width = F, fixed_thead = T)  %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "200px")
+
+```
+******
+
+```{undefined echo=FALSE}
+test2<-S3_Report %>% 
+  select(
+    S3Date,
+    ID,
+    Researcher,
+    `DTK Notes`,
+    `Neighborhood Notes`,
+    `Mushroom Notes`,
+    `Vending Machine Notes`,
+    ) 
+
+%>%
+  #drop_na() %>%
+  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
+  arrange(S3Date) %>%
+  kable() %>%
+  kable_styling(full_width = F, fixed_thead = T) %>%
+  column_spec(column = 1, width = "7em; display: inline-block;") %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "300px") 
+
+```
+
+## Session 4 {.tabset .tabset-pills}
+
+```{r Expected Session 4 Table, eval=FALSE, include=FALSE}
+Tracker %>%
+  select(
+    ID,
+    `STUDY PROGRESS`,
+    `ACTUAL GROUP`,
+    `R01_ENROLLMENT`,
+    `S4 DATE`) %>%
+  dplyr::filter((`S4 DATE`>= params$report_start & `S4 DATE` <= params$report_end)) %>%
+  arrange(ID)
+
+S4_Report %>%
+  select(S4Date,
+         ID) %>%
+  dplyr::filter((S4Date>= params$report_start & S4Date <= params$report_end)) %>%
+  arrange(ID)
+
+```
+
+### Session 4 Overview
+
+*****
+
+```{r Title Formating for S4 Table, include=FALSE}
+
+#table Session 4 Rating Overview
+
+S4OverallRatTable <- "Overview"
+tf.S4OverallRatTable <- text_spec(S4OverallRatTable, bold = T, italic = T, font_size = 15)
+
+#table physio and et
+S4PhysioETTable <- "Session 4 Notes: Physio, ET"
+text_formatted_PhysioET <- text_spec(S4PhysioETTable, bold = T, italic = T, font_size = 15)
+
+#spott table
+
+S4SpottNotTbl <- "Session 4 Notes: SPOTT"
+tf.S4SpottNotTbl <- text_spec(S4SpottNotTbl, bold = T, italic = T, font_size = 15)
+
+# table Session 4 Notes: Mock Scanner Time, Localizer, Structural, Pretask Resting State and Transfer Task" 
+
+S4ScanNotTbl <- "Session 4 Notes: Mock Scanner Time, Localizer, Structural, Pretask Resting State and Transfer Task"
+tf.S4ScanNotTbl <- text_spec(S4ScanNotTbl, bold = T, italic = T, font_size = 15)
+
+```
+
+`r tf.S4OverallRatTable`
+
+```{r Session 4 Report Ratings, echo=FALSE}
+S4_Report %>% #data_frame() %>%
+  select("ID",
+         "S4Date",
+         "RA",
+         "Overall Rating",
+         "Physio Rating",
+         "ET Rating",
+         "Pre Scan Rating",
+         "Loca/Struc/Pre-Rest Rating",
+         "Pav Rating",
+         "Instrumental Rating",
+         "PIT Rating",
+         "Post-Rest Rating",
+        "Transfer Task Rating") %>%
+  dplyr::filter((S4Date >= params$report_start & S4Date <= params$report_end)) %>%
+  arrange(S4Date) %>%
+  #mutate(
+   # `Overall Rating` = cell_spec(`Overall Rating`, "html",
+    #                             color = ifelse(`Overall Rating`< 3, "red", "green"))) %>%
+  kable(format = "html", escape = F) %>%
+  kable_styling(bootstrap_options = "condensed", full_width = T) %>%
+  footnote(
+  general = "1 = serious issues with data, i.e. participant found out their parent was ill during the session, all the tasks failed, participant was asleep etc. 
+    2 = 40-60 % of the data/session had problems
+    3 = A couple of small problems but overall good
+    4 = One small problem 
+    5 = Don't need to talk about it :) Session was perfect!",
+  general_title = "Overall Rating Scale",
+  footnote_as_chunk = F, title_format = c('italic', "underline"))
+```
+
+******
+### Physio and ET Notes
+
+*****
+`r text_formatted_PhysioET` 
+
+```{r Session 4 Detailed Reports: Physio, echo=FALSE}
+S4_Report %>% 
+  select ("S4Date",
+          "ID",
+         "RA",
+        "Physio Notes",
+       "EyeTraking Notes",
+       ) %>%
+dplyr::filter((S4Date>= params$report_start & S4Date <= params$report_end)) %>%
+  arrange(S4Date) %>%
+  #arrange(`Overall Rating`) %>%
+  kable(format = "html", escape = F) %>%
+  kable_styling(bootstrap_options = "condensed", full_width = F) 
+
+```
+
+### Scan Notes
+
+`r tf.S4ScanNotTbl`
+
+```{r Session 4 Scan Notes, echo=FALSE}
+#report table for mock time, structural, resting (pre/post) and transfer task 
+S4_Report %>%
+  select(
+    "S4Date",
+    "ID",
+    "RA",
+    "Mock Scanner Time",
+    "Localizer, Structural and Pretask Resting State",
+    "Post Task Resting State Scan",
+    "Transfer Task") %>%
+  dplyr::filter((S4Date>= params$report_start & S4Date <= params$report_end)) %>%
+  arrange(S4Date) %>%
+  kable(format = "html", escape = F) %>%
+  kable_styling(bootstrap_options = "condensed", full_width = F, fixed_thead = T) %>%
+  column_spec(column = 1, width = "7em; display: inline-block;") %>%
+  column_spec(column = 3, border_right = T) %>%
+  scroll_box(width = "100%", height = "300px") 
+```
+
+### SPOTT Notes
+`r tf.S4SpottNotTbl`
+
+```{r Session 4 Detailed Reports: SPOTT (Task), echo=FALSE}
+S4_Report %>%
+  select(
+    "S4Date",
+    "ID",
+    "RA",
+    "Pav Notes",
+    "Instrumental Notes",
+    "PIT Notes") %>%
+  dplyr::filter((S4Date>= params$report_start & S4Date <= params$report_end)) %>%
+  arrange(S4Date) %>%
+    kable(format = "html", escape = F) %>%
+    kable_styling(bootstrap_options = "condensed", full_width = T)
+
+```
+
+****
+
+# Enrollment Overview {.tabset}
+
+## RO1 Enrollment Targets For March
+
+
+```{r R01 Enrollment Overview, echo=FALSE, message=TRUE}
+
+# Totals for the month
+
+EnrollOverview %>%
+  filter(MONTH == CURRENT_MONTH_GRANT & YEAR == params$grant_year) %>%
+  select(
+    GROUP, 
+    EXPECTED, 
+    PROJECTED, 
+    `ENROLLED FMRI`, 
+    `ENROLLED NO FMRI`, 
+    `STATUS TBD`, 
+    `EXCLUDED`) %>%
+  knitr::kable(
+    #caption = create_title(type = "R01", "March"),
+    col.names = c("Diagnostic Group", "Expected Enrollment to Fulfill R01 Timeline in the Month of March", "In Process of Enrollment", "Enrolled in FMRI Group", "Not Enrolled in FMRI Group", "Status TBD", "Excluded"))
+
+```
+
+## RO1 Enrollment Summary
+*****
+
+```{r echo=FALSE}
+#TOTAL TO DATE
+
+EnrollOverview %>%
+  dplyr::filter(MONTH == CURRENT_MONTH_GRANT & YEAR) %>%
+  group_by(GROUP) %>%
+  select(
+    GROUP, 
+    C_EXPECTED, 
+    `C_ENROLLED FMRI`,
+    C_PROJECTED, 
+    C_TBD,
+    `C_ENROLLED NO FMRI`,
+    C_EXCLUDED) %>%
+  knitr::kable(
+    caption = RO1_TOTAL_CAPTION,
+    col.names = c("Diagnostic Group", "Cumulative Expected Enrollment to Fulfill R01 Timeline", "Total Enrolled in FMRI Group", "Total In Process of Enrollment", "Total Status TBD", "Total Not Enrolled in FMRI Group", "Excluded"))
+
+```
+
+*****
+## Visual of Study Progress
+
+```{r Distribution of Sessions, echo=FALSE}
+
+a<-Acuity %>% select(
+  "Start Time (AM/PM)",
+  "Session Date",
+  "Canceled",
+  "Type",
+  "Type (Recode)") %>% 
+  dplyr::filter((.$`Session Date`>= params$report_start & .$`Session Date`<= params$report_end) & is.na(.$Canceled)) %>%
+  group_by(`Type (Recode)`) %>%
+  ggplot(aes(x=`Type (Recode)`)) +
+  geom_bar(stat="count") +
+  labs(title ="Distribution of Scheduled S1-S3 (Past 7 Days)", y = "Count", x = "Session Number")
+  
+ 
+b<-Acuity %>% select(
+  "Start Time (AM/PM)",
+  "Session Date",
+  "Canceled",
+  "Type",
+  "Type (Recode)") %>% 
+  dplyr::filter((.$`Session Date`>= params$report_end) & is.na(.$Canceled)) %>%
+  ggplot(aes(x=`Type (Recode)`)) +
+  geom_bar(stat="count") +
+  labs(title ="Distribution of all Upcoming Scheduled S1-S3", y = "Count", x = "Session Number")
+
+c <-Tracker %>% select("STUDY PROGRESS") %>%
+  dplyr::filter(!`STUDY PROGRESS` %in% c("MIA", "NOT ENROLLED - MISSED S1", "INEL", "STUCK S3")) %>%
+  ggplot(aes(x=`STUDY PROGRESS`)) +
+  geom_bar(stat="count") +
+  labs(title ="Distribution of Overall Participant Status", y = "Count", x = "Status")
+
+  
+  plot_grid(a, b,c, nrow = 3)
+
+
+```
+
+*****
+## Time Series
+
+```{r Time Series Graphs, echo=FALSE, warning=FALSE}
+data <- EnrollOverview 
+
+data$Time_chronological <- factor(data$Time_chronological, levels = c("Apr_2019", "May_2019", "June_2019", "Jul_2019",  "Aug_2019", "Sep_2019", "Oct_2019", "Nov_2019", "Dec_2019", "Jan_2020", "Feb_2020", "Mar_2020"))
+
+
+data <- data %>% select(Time_chronological, GROUP, C_EXPECTED, C_PROJECTED, `C_ENROLLED FMRI`, `C_ENROLLED NO FMRI`, C_EXCLUDED)
+data_melt <- reshape2::melt(data,  id = c("Time_chronological", "GROUP"))
+
+#str(data_melt)
+
+
+ggplot(data= data_melt, aes(x = Time_chronological, y = value, color = variable, fill = variable, group = variable)) + geom_point(stat = "summary", fun.y=sum) +  stat_summary(fun.y=sum, geom="line")  + theme(axis.text.x = element_text(angle = 45))  + scale_color_brewer(palette = "Set1")+ facet_wrap(~GROUP, ncol = 2)
+  
+#geom_point(stat='summary', fun.y=sum) +stat_summary(fun.y=sum, geom="line") #+ facet_wrap(~GROUP)
+
+
+
+#View(data_melt)
+
+
+#str(data)
+
+
+#data$EXPECTED
+
+```
+
+****
+<!-- # Upcoming Week -->
+
+```{r Tally of Sessions for Current Week - UPDATE DATE WEEKLY, warning=FALSE, include=FALSE}
+
+TALLY_UPCOMING_SESSIONS <- Acuity %>% select("First Name", "Last Name", "Type (Recode)", "Calendar", "Start Time", "Session Date") %>%
+  dplyr::filter(Acuity$`Session Date`>= params$report_start & Acuity$`Session Date` <= params$report_end) %>%
+  group_by(`Type (Recode)`) %>%
+  tally() %>%
+  arrange(desc(n))
+
+knitr::kable(
+  TALLY_UPCOMING_SESSIONS, 
+  caption = "Upcoming Sessions (1-3 ONLY)",
+  col.names = c("Session Type", "Number"))
+
+```
+
+***
+
+<!-- ### Session 1 -->
+
+```{r Enrollment Session 1s for Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+ENROLLING<- Acuity %>% select(`First Name`, `Last Name`, `Start Time`,`Start Time (AM/PM)`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2020-01-20") & `Start Time` <= as.Date("2020-01-25")) & (`Type` == "Session 1"))
+
+ENROLLING<- ENROLLING %>% select(-'Start Time')
+
+knitr::kable(
+  ENROLLING, 
+  caption = "New Enrollment (Current Week)",
+  col.names = c("First Name", "Last Name", "Date/Time", "Session", "Assigned Researcher"))
+
+
+```
+
+```{r Follow-Up Session 1s for Current Week, eval=FALSE, include=FALSE}
+
+UPCOMMING_FU <- Acuity %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter((`Start Time` >= as.Date("2019-11-04") & `Start Time` <= as.Date("2019-11-11")) & (`Type` == "Session 1 Follow Up (1.5 hours)" | `Type` == "Session 1 Follow Up (30 minutes)" | `Type` == "Session 1 Follow Up (3 hours)"))
+
+knitr::kable(
+  UPCOMMING_FU, 
+  caption = "Follow-Up Sessions Scheduled This Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+<!-- ### Session 2 -->
+
+```{r Session 2 For Current Week - UPDATE DATE WEEKLY, eval=FALSE, include=FALSE}
+SESSION_2 <- Acuity %>% select(`First Name`, `Last Name`,`Session Date`, `Type`, `Calendar`) %>%
+dplyr::filter((Acuity$`Session Date`>= params$report_start & Acuity$`Session Date` <= params$report_end) & (`Type` == "Session 2"))
+
+knitr::kable(
+  SESSION_2, 
+  caption = "Upcoming Session 2 (Current Week)",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+
+```
+
+<!-- ### Session 3 -->
+
+```{r Session 3 For Current Week, eval=FALSE, include=FALSE}
+SESSION_3 <- Acuity %>% select(`First Name`, `Last Name`, `Session Date`, `Type (Recode)`, `Calendar`) %>%
+dplyr::filter((Acuity$`Session Date`>= params$report_start & Acuity$`Session Date` <= params$report_end) & (`Type (Recode)` == "Session 3") | (`Type (Recode)` == "Session 3 FU"))
+
+knitr::kable(
+  SESSION_3, 
+  caption = "Upcoming Session 3 (Current Week)",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+<!-- ### Session 4 -->
+
+```{r Current Week Session 4, eval=FALSE, include=FALSE}
+
+knitr::kable(
+  TRACKER %>% select(ID, NAME, S4_DATE) %>%
+  dplyr::filter(S4_DATE >= params$report_start & S4_DATE <= params$report_end), 
+  caption = "Upcoming Session 4 (Current Week)",
+  col.names = c("ID", "Name", "Date"))
+  
+
+```
+
+<!-- ## All Future Sessions -->
+
+``` {r Acuity - All Upcoming Sessions Overview, eval = FALSE, include = TRUE} 
+
+#number of hours of all scheduled upcomming appointments
+Acuity %>% 
+  select(
+    `First Name`, 
+    `Last Name`, 
+    `Start Time`, 
+    `Type (Recode)`, 
+    `Type`,  
+    `Calendar`) %>%
+  dplyr::filter(`Start Time` >= params$report_end) %>%
+  group_by(`Type`) %>%
+  tally() %>%
+  mutate(number_hours = case_when(
+    Type == "Session 1" ~ n * 3,
+    Type == "Session 1 Follow Up (1.5 hours)" ~ n * 1.5,
+    Type == "Session 1 Follow Up (3 hours)" ~ n * 3,
+    Type == "Session 2 (Marissa)" ~ n * 2,
+    #.$`Type (Recode) == "Session 2" ~ n[4] * 2,
+    Type == "Session 2 (Mia)" ~ n *2,
+    Type == "Session 3" ~ n *3)) %>%
+  add_tally(number_hours)
+
+%>% ungroup() 
+%>%
+
+
+Acuity %>% 
+  select(
+    `First Name`, 
+    `Last Name`, 
+    `Start Time`, 
+    `Type (Recode)`, 
+    `Type`,  
+    `Calendar`) %>%
+  dplyr::filter(`Start Time` >= params$report_end & (`Type (Recode)` == "Session 1" | `Type (Recode)` == "Session 1 FU"))) %>%
+    add_tally(number_hours) %>% ungroup()
+ 
+
+# 
+knitr::kable(
+UPCOMMING_ALL, 
+  caption = "Sessions for the Following Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+
+
+Acuity %>% select()
+
+TRACKER %>%
+  mutate(NEW_VAR=case_when(
+    .$STATUS == "Scheduled S1" ~ "S1",
+```
+
+
+<!-- ## Past Week Sessions -->
+```{r Sessions Last Week, eval=FALSE, include=FALSE}
+#MUST CHANGE DATE
+LASTWEEK <- Acuity %>% select(`First Name`, `Last Name`, `Start Time`, `Type`, `Calendar`) %>%
+dplyr::filter(`Start Time` >= as.Date("2019-10-27") & `Start Time` <= as.Date("2019-11-03"))
+
+
+knitr::kable(
+  LASTWEEK, 
+  caption = "Sessions Acuityd Last Week",
+  col.names = c("First Name", "Last Name", "Date", "Session", "Assigned Researcher"))
+```
+
+```{r Session 1 Notes, eval=FALSE, include=FALSE}
+## Session 1 Notes - should be caption when working
+
+s1 <- read_csv(paste0(directory,"S1+Check+List_October+14,+2019_12.12 (1).csv"), col_names = TRUE) %>% 
+  #, col_types = cols(
+  # "Recorded Date" = col_datetime(format = "%Y-%m-%d %H:%M:%S"))) %>%
+#filter("Response Type" == "IP Address")  %>% #select only real entries, filter by date
+  select(Q1.1_1:Q3.6) %>% #rename
+  rename(
+    id ="Q1.1_4", 
+    session_date = "Q1.1_1",
+    session_time = "Q1.1_2", is_followup = "Q1.2", interviewer = "Q1.1_3", visit1_checklist = "Q2.1", visit1_notes = "Q2.2", session_complete = "Q2.3", followup = "Q2.4", followup_date = "Q2.5", need_followup = "Q2.6", visit2_checklist = Q3.1, visit1_makeup = Q3.2, visit1_makeuptxt = Q3.2_5_TEXT, session_complete2 = Q3.3, followup2 = Q3.4, followup_date2 = Q3.5, need_followup2 = Q3.6) %>%
+   arrange(desc(session_date))
+
+#sort items by visit 1 and visit 2
+visit1<-select(s1, id, is_followup, session_date, visit1_notes, visit1_checklist,  session_complete, followup, followup_date, need_followup) %>%
+  filter(is_followup == "No")
+
+visit1.tabledata <-select(s1, id, session_date, interviewer, session_complete, visit1_notes)
+
+knitr::kable(
+  visit1.tabledata,
+  caption = "Notes from Session 1",
+ col.names = c("ID", "Session Date", "Interviewer", "Session Complete (Y/N)", "Visit Notes"))
+
+```
+
+# Recruitment Visual Overview {.tabset}
+
+## Overview of Contact Outcomes
+
+```{r Overview of Contact Outcomes, echo=FALSE}
+total_status_graph <-Master %>% 
+  select(STATUS) %>%
+  dplyr::filter(!is.na(STATUS)) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip()+ 
+  theme(legend.position="none") +
+  ggtitle("Activity from July 01 - Today")
+
+  
+
+enrollment_pastweek_visual <-Master %>% 
+  select(STATUS, SCREEN_SENTDATE) %>%
+  dplyr::filter((SCREEN_SENTDATE >= params$report_start & SCREEN_SENTDATE <= params$report_end & !is.na(STATUS))) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip() + 
+  theme(legend.position="none") +
+  ggtitle(ENROLL_PASTWEEK_TITLE)
+
+plot_grid(total_status_graph, enrollment_pastweek_visual,  ncol = 1)
+```
+
+``` {r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE}
+
+#factor each level so they can be reordered in the natural format to tell a better story
+#NA is naturally factored
+Master$STATUS <- factor(Master$STATUS, levels = c("No Longer Interested", "Inquiry", "Screen Sent", "Completed Screen", "Invited S1", "Queued S1"))
+
+#reverse the factor levels (see https://stackoverflow.com/questions/42710056/reverse-stacked-bar-order)
+Master$STATUS <-fct_rev(Master$STATUS)
+
+#create a plot based on this data
+Master %>%
+  drop_na(STATUS) %>%
+  ggplot(aes(y = STATUS)) +
+  geom_bar() +
+  labs(
+    title = "We have invited over half of the participants who completed the screen to enroll in the study") +
+  theme(panel.background = element_blank(),
+        axis.ticks = element_blank(), #axis.ticks removes the little - "ticks",
+        plot.title = element_text(face = "bold", hjust = 0), #the following two lines of code allow the title to be left aligned 
+        plot.title.position = "plot" #this will left align the title
+      
+        )
+
+
+
+```
+
+```{r , echo=FALSE, warning=FALSE}
+#select all the values that are needed and create a summary table so that the graph to be rendered will have the categorical variable (status) along with the associated count(n) ready to go so that the geom_text layer can be added (n) 
+subset <- Master %>% select(Name, STATUS) %>% drop_na(STATUS) %>% group_by(STATUS) %>% tally()
+
+#must refactor
+subset$STATUS <- factor(subset$STATUS, levels = c("No Longer Interested", "Inquiry", "Screen Sent", "Completed Screen", "Invited S1", "Queued S1"))
+
+#reverse the factor levels (see https://stackoverflow.com/questions/42710056/reverse-stacked-bar-order)
+subset$STATUS <-fct_rev(subset$STATUS)
+
+  
+plot <- ggplot(subset, aes(y = STATUS, x = n, fill = STATUS)) + #x-axis should be thought of as subsequent vertical lines since the plot is flipped.
+  geom_bar(stat = "identity",
+           width = .8, 
+           position = position_dodge(width = 1)) + #identity stat because counts have already been found
+  geom_text(aes(label= n ), hjust = -.20, size = 3.5) +
+    labs(
+    title = "Over half of the participants who completed\nthe screen were invited to enroll in the study",
+    x = NULL, y = NULL)
+
+my_plot <- plot + 
+  scale_x_continuous(expand = expand_scale(mult = c(-.00005, .1))) + #adjust the white space around the start of each bar. Think of the x-axis as stacking from bottom to top. Use x_cont since data is numerical.
+  scale_fill_grey() + #set the color of the bars
+  theme(legend.position = "none") + 
+  theme(panel.background = element_blank(),
+        axis.ticks = element_blank(), #axis.ticks removes the little - "ticks",
+        plot.title = element_text(face = "bold", hjust = 0), #the following two lines of code allow the title to be left aligned 
+        plot.title.position = "plot", #this will left align the title
+        axis.text.x = element_blank(),
+)
+
+my_plot
+
+ggsave(filename = "recruitment_survey", device = "png")
+```
+
+***
+## Source of Study Activity (July 01- Today)
+
+```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE}
+inquiry_plot<-Master %>% select(SOURCE) %>%
+  group_by(SOURCE) %>%
+  tally() %>%
+  arrange(desc(SOURCE)) %>%
+  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("Inquired About Study") +
+    coord_flip()+ 
+  theme(legend.position="none")
+
+
+source_enrollment_plot<-Master %>% select(SOURCE, STATUS) %>%
+  dplyr::filter(STATUS == "Invited S1") %>%
+  group_by(SOURCE) %>%
+  tally() %>%
+  arrange(desc(SOURCE)) %>%
+  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("Eligible After Baseline Screen") +
+    coord_flip()+ 
+  theme(legend.position="none")
+
+plot_grid(inquiry_plot, source_enrollment_plot, ncol = 2)
+
+```
+
+```{r Source of Contacts - Past Week, eval=FALSE, include=FALSE}
+source_contacts_pastweek_graph <- Master %>% 
+  dplyr::select(SCREEN_SENTDATE, SOURCE) %>%
+  filter(SCREEN_SENTDATE >= START_LWEEK & SCREEN_SENTDATE <= params$report_start) %>%
+  ggplot(aes(SOURCE)) +
+  geom_bar(aes(SOURCE, fill = SOURCE,)) +
+  labs(title ="Source of Contacts (Past Week)", y = "Number of Contacts", x = "Source") + 
+  theme(legend.position = "none")
+
+```
+
+```{r Gender Visualization, eval=FALSE, include=FALSE}
+graph_INVTEDS1_TO_DATE <- Tracker %>% dplyr::select(GENDER, GROUP) %>%
+ggplot(aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,)) + 
+  scale_fill_manual(name = "Gender of S1 Participants",
+                    values = c("pink", "blue", "black"),
+                    labels = c("Female", "Male", "Unknown")) +
+  labs(title ="Gender Distribution of All Participants Invited to S1 (To Date)", y = "Number", x = "Group") 
+
+Master %>% dplyr::select(GENDER) %>%
+ggplot(aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Distribution of Gender (All Contacts)", y = "Count", x = "Gender")
+
+
+
+#plot_grid(graph_TO_DATE, graph_WEEKLY_SOURCE, ncol = 1)
+
+
+```
+
+
+```{r Counts of All Contacts, eval=FALSE, include=FALSE}
+#COUNTS OF ALL CONTACTS
+
+SOURCE_COUNT<-TO_DATE %>% 
+  select(SOURCE) %>%
+  group_by(SOURCE) %>%
+  tally()
+
+GENDER_COUNT <-TO_DATE %>% 
+  select(GENDER) %>%
+  group_by(GENDER) %>%
+  tally()
+
+AGE_COUNT <- TO_DATE %>% 
+  select(AGE) %>%
+  group_by(AGE) %>%
+  tally()
+
+SCREEN_COMPLETE_COUNT <- TO_DATE %>% 
+  select(SCREEN_COMPLETEYN) %>%
+  group_by(SCREEN_COMPLETEYN) %>%
+  tally()
+
+new_df<-full_join(SOURCE_COUNT, SCREEN_COMPLETE_COUNT)
+new_df_2 <-full_join(AGE_COUNT, GENDER_COUNT)
+new_new <-full_join(new_df, new_df_2 )
+```
+
+***
+# Visual Status of Scheduled and Enrolled Participants {.tabset}
+
+## Age
+
+```{r Age Visualization, echo=FALSE, warning=FALSE}
+
+# graph_age_contacts <- Master %>% select(AGE) %>%
+#   ggplot(aes(AGE)) +
+#   geom_histogram(bins = 10, color = "black", fill = "lightblue") + 
+#   labs(title ="Age: All Contacts To Date", y = "Number", x = "Age")  +
+#   theme(plot.title = element_text(size = 10))
+
+
+graph_age_enrolled_dense <- Tracker %>%
+  filter(`STATUS` != 'NO SHOW') %>%
+  ggplot(aes(AGE)) +
+geom_density(fill="#69b3a2", color="#e9ecef", alpha=.8) +
+  labs(title ="Age: Scheduled and Enrolled Participants", y = "Density", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+graph_age_contacts_dense <- Master %>% select(AGE) %>%
+  ggplot(aes(AGE)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=.8)+ 
+  labs(title ="Age: All Contacts To Date", y = "Density", x = "Age")  +
+  theme(plot.title = element_text(size = 10))
+
+plot_grid(graph_age_enrolled_dense, graph_age_contacts_dense, nrow = 1)
+
+
+```
+
+```{r eval=FALSE, include=FALSE}
+
+# graph_TO_DATE_GENDER <- Master %>%
+# ggplot(aes(GENDER)) +
+#   geom_bar(aes(GENDER, fill = GENDER,)) +
+#   labs(title ="Gender: All Contacts To Date", y = "Count", x = "Gender") +
+#   theme(plot.title = element_text(size = 10))
+  
+```
+## Gender
+
+```{r Visual Status of Enrolled Participants, echo=FALSE}
+
+#TRACKER[,13] <- ifelse(TRACKER[,13] == "M", 1, ifelse(A[,1] == "F", 2, 99))
+
+#Define the number of colors you want
+nb.cols <- 18
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nb.cols)
+
+graph_S1_GENDERGROUP <- Tracker %>%
+  dplyr::filter(GROUP != "Ineligible") %>%
+  ggplot(aes(GROUP)) +
+  geom_bar(aes(GROUP, fill = GENDER,))  +
+ labs(title ="Gender: Scheduled or Enrolled Participants by Diagnostic Group", y = "Number") +
+  theme(plot.title = element_text(size = 10),
+        axis.title = element_text(size = 8)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+   theme(legend.position="none")
+
+(graph_S1_GENDER <- Tracker %>%
+  filter(!is.na(GENDER)) %>%
+  ggplot(aes(GENDER)) +
+  geom_bar(aes(GENDER, fill = GENDER,)) +
+  labs(title ="Gender: Scheduled or Enrolled Participants", y = "Count", x = "Gender")  +
+  theme(plot.title = element_text(size = 10)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+  theme(legend.position="none"))
+
+
+plot_grid(graph_S1_GENDER, graph_S1_GENDERGROUP, nrow = 1)
+
+```
+
+<!-- ### Age and Gender Breakdown -->
+
+```{r eval=FALSE, include=FALSE}
+plot_grid(graph_age_enrolled_dense, graph_S1_GENDER, ncol = 1)
+```
+
+
+
