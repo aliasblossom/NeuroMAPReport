@@ -47,7 +47,7 @@ params:
 
 ```{r setup, include=FALSE}
 if (!require(pacman)) { install.packages("pacman"); library(pacman) }
-p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts")
+p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT")
 
 #load R functions
 source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
@@ -68,17 +68,30 @@ CURRENT_MONTH_GRANT<- month(params$report_start - months(3)) #month of study (do
 
 ```{r NeuroMAP Master Tab Tidying, include=FALSE}
 
+#directory for worksheet with participant data
 ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/NEUROMAP Master V2_Copy.xlsx"
-
-neuroMAP_master<- ws_path %>% excel_sheets() %>%
-  set_names() %>%
-  map_dfr(read_excel, path = path)
+s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/s3_quality_data.xlsx"
 
 
-  load_pdata(account = "strength", workbook = "Master")
-EnrollOverview <- load_pdata(account = "strength", workbook = "Enroll Overview")
+output <- ws_path %>% excel_sheets() %>% set_names() %>%
+  map_dfr(read_excel(col_types = "numeric"), path = ws_path)
 
+#read in all worksheets for the s3 progress report
+s3_report_data <- s3_path %>% 
+  excel_sheets() %>% 
+  set_names() %>% 
+  map(read_excel, path = s3_path)
+
+#return the names of each sheet
+neuroMAP_master<- ws_path %>% excel_sheets()
+
+s3_notes <- s3_path %>% excel_sheets()
+#EnrollOverview <- load_pdata(account = "strength", workbook = "Enroll Overview")
+
+#load master participant data worksheet
 Master<- read_excel(ws_path, sheet = "MasterData")
+
+s3_shrooms <-read_excel(s3_path, sheet = "Sorting Mushroom Notes")
 
 #tidy up column names for Master
 
@@ -116,7 +129,7 @@ Master$SOURCE[is.na(Master$SOURCE)] <- "Unknown"
 
 ```{r Import and Clean Tracker Data, include=FALSE}
 #establish path for file, load enrolled participant data
-Tracker <-load_pdata("strength", "Tracker")
+Tracker <-read_excel(ws_path, sheet = "Tracker")
 
 Tracker <- Tracker %>%
 #rename column names
@@ -254,8 +267,8 @@ S3_Report$s3_sessioninfo_1<-lubridate::mdy(S3_Report$s3_sessioninfo_1)
 S4_Report$s4_sessioninfo_1<-lubridate::mdy(S4_Report$s4_sessioninfo_1)
 ```
 
-```{r S3 Report Data Cleaning, include=FALSE}
-
+```{r S3 Report Data Cleaning, eval=FALSE, include=FALSE}
+#this block of code is depreciated as the session 3 report cannot be accessed via qualtrics anymore.
 S3_Report <-S3_Report  %>%
   rename(`S3Date` = s3_sessioninfo_1,
          `ID` = s3_sessioninfo_4,
@@ -282,6 +295,10 @@ S3_Report <-S3_Report  %>%
          `Vending Machine Rating (Behavior)` = s3taskratings.vm_score_3,
          `Vending Machine Notes` = s3taskratings.vm_note_1) %>%
   filter(DistributionChannel != "preview")
+```
+
+```{r}
+
 ```
 
 
@@ -484,7 +501,16 @@ ExpecEnrollmentTable
 
 ### Overview
 
-```{r Session 3 Report Ratings, echo=FALSE}
+```{r}
+s3_shrooms$DateReformated <- format(s3_shrooms$Date, format = "%m-%d-%Y")
+s3_shrooms$DateReformated <- as.POSIXct(s3_shrooms$DateReformated, format = "%m-%d-%Y")
+
+datatable(s3_shrooms)
+```
+
+```{r Session 3 Report Ratings, eval=FALSE, include=FALSE}
+
+#decpreciate code block
 S3_Report %>% 
   select("S3Date",
          "ID",
@@ -1303,6 +1329,65 @@ new_new <-full_join(new_df, new_df_2 )
 
 ## Age
 
+```{r}
+subset_age_gender <- Tracker %>% select(ID, AGE, GENDER, STATUS) %>%
+  filter(STATUS != 'NO SHOW' & AGE >= 18) %>%
+  na.omit()
+
+subset_age_gender$GENDER <- as.factor(subset_age_gender$GENDER)
+
+subset_age_gender$AGE <- as.factor(subset_age_gender$AGE)
+subset_age_gender
+ggplot(subset_age_gender, aes(x = AGE)) +
+  geom_bar(aes(fill = GENDER), show.legend = FALSE) +
+  scale_x_continuous(breaks = seq(18,25, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 30, by = 5), limits = c(0, 30)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+  labs(title = "<span style='color:pink;'>Female</span> Participants Outnumber <span style = 'color: blue', weight: bold>Males</span> by <span style='color:pink;'>2.4</span>:<span style = 'color: blue', weight: bold>1</span>",
+       caption = "Source: NEUROMAP Recruitment Data 2020",
+       y = "Number of Participants",
+       x = "Participant Age") +
+  theme_classic() +
+  theme(plot.title = element_markdown(lineheight = 1.1),
+    legend.text = element_markdown(size = 11),
+        axis.ticks.x  = element_blank())
+age_gender_dotplot  
+#ggsave("age_gender_dotplot", device = "png")
+
+```
+
+
+```{r}
+ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
+  geom_point(size = 3) +
+  scale_color_manual(
+    name = NULL,
+    values = c(setosa = "#0072B2", virginica = "#009E73", versicolor = "#D55E00"),
+    labels = c(
+      setosa = "<i style='color:#0072B2'>I. setosa</i>",
+      virginica = "<i style='color:#009E73'>I. virginica</i>",
+      versicolor = "<i style='color:#D55E00'>I. versicolor</i>")
+  ) +
+  labs(
+    title = "**Fisher's *Iris* dataset**  
+    <span style='font-size:11pt'>Sepal width vs. sepal length for 
+    <span style='color:#0072B2;'>setosa</span>, 
+    <span style='color:#D55E00;'>versicolor</span>, and
+    <span style='color:#009E73;'>virginica</span>
+    </span>",
+    x = "Sepal length (cm)", y = "Sepal width (cm)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_markdown(lineheight = 1.1),
+    legend.text = element_markdown(size = 11),
+      theme(
+    plot.title = element_markdown(lineheight = 1.1),
+    legend.text = element_markdown(size = 11)
+  )
+  )
+```
+
 ```{r Age Visualization, echo=FALSE, warning=FALSE}
 
 # graph_age_contacts <- Master %>% select(AGE) %>%
@@ -1311,8 +1396,7 @@ new_new <-full_join(new_df, new_df_2 )
 #   labs(title ="Age: All Contacts To Date", y = "Number", x = "Age")  +
 #   theme(plot.title = element_text(size = 10))
 
-
-graph_age_enrolled_dense <- Tracker %>%
+Tracker %>% select(ID, AGE, GENDER, STATUS) %>%
   filter(`STATUS` != 'NO SHOW') %>%
   ggplot(aes(AGE)) +
 geom_density(fill="#69b3a2", color="#e9ecef", alpha=.8) +
