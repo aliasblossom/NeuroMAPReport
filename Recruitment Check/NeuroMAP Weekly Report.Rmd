@@ -18,8 +18,6 @@ output:
     number_sections: yes
     toc: yes
     toc_depth: 4
-  
-    
 ---
 
 ```{r setup, include=FALSE}
@@ -564,50 +562,6 @@ print(datatable(s3_overview[,1], container = sketch, rownames = FALSE))
 
 ```
 
-```{r Session 3 Report Ratings, eval=FALSE, include=FALSE}
-
-#decpreciate code block
-S3_Report %>% 
-  select("S3Date",
-         "ID",
-         "Researcher",
-         "Overall Rating",
-         "Vanilla Baseline Rating (Physio)",
-         "Vanilla Baseline Rating (EyeTraking)",
-         "Vanilla Baseline Rating (Behavior)",
-         "DTK Rating (Physio)",
-         "DTK Rating (EyeTraking)",
-         "DTK Rating (Behavior)",
-         "Mushrooms Rating (Physio)",
-         "Mushrooms Rating (EyeTraking)",
-         "Mushrooms Rating (Behavior)",
-         "Neighborhood Rating (Physio)" ,
-         "Neighborhood Rating (EyeTraking)" ,
-         "Neighborhood Rating (Behavior)",
-         "Vending Machine Rating (Physio)",
-         "Vending Machine Rating (EyeTraking)" ,
-         "Vending Machine Rating (Behavior)") %>%
-  dplyr::filter((.$S3Date>= params$report_start & .$S3Date <= params$report_end)) %>%
-  arrange(S3Date) %>%
- # mutate(
-  #  `Overall Rating` = cell_spec (`Overall Rating`, "html", 
-   #                               color = if_else (`Overall Rating` > 3, "green",
-    #                              if_else(`Overall Rating` == "NA", "blue", "red")))) %>%
-  kable(format = "html", escape = F, caption = "Session 3 Ratings",
-         col.names = c("Date", "ID", "RA", "Overall", "P", "ET", "B", "P", "ET", "B","P", "ET", "B","P", "ET", "B", "P", "ET", "B")) %>%
-  kable_styling(bootstrap_options = "condensed", full_width = F) %>%
-  add_header_above(c(" " = 4, "Vanilla Baseline" = 3, "DTK" = 3, "Mushrooms" = 3, "Neighborhood" = 3, "Vending Machine" = 3)) %>%
-  footnote(
-  general = "1 = serious issues with data, i.e. participant found out their parent was ill during the session, all the tasks failed, participant was asleep etc. 
-    2 = 40-60 % of the data/session had problems
-    3 = A couple of small problems but overall good
-    4 = One small problem 
-    5 = Don't need to talk about it :) Session was perfect!",
-  general_title = "Overall Rating Scale",
-  footnote_as_chunk = F, title_format = c('italic', "underline"))
-  #scroll_box(width = "100%", height = "400px")
-```
-******
 ### Vanilla Baseline Notes
 ******
 
