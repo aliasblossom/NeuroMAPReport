@@ -83,7 +83,7 @@ s3_report_data <- s3_path %>%
 neuroMAP_master<- ws_path %>% excel_sheets()
 
 s3_notes <- s3_path %>% excel_sheets()
-#EnrollOverview <- load_pdata(account = "strength", workbook = "Enroll Overview")
+EnrollOverview <- read_excel(ws_path, sheet = "RO1 Aggregate")
 
 #load master participant data worksheet
 Master<- read_excel(ws_path, sheet = "MasterData")
