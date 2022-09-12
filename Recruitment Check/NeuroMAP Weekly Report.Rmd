@@ -73,9 +73,6 @@ ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/NEUROMAP Master V2_Copy.
 s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/s3_quality_data.xlsx"
 
 
-output <- ws_path %>% excel_sheets() %>% set_names() %>%
-  map_dfr(read_excel(col_types = "numeric"), path = ws_path)
-
 #read in all worksheets for the s3 progress report
 s3_report_data <- s3_path %>% 
   excel_sheets() %>% 
@@ -250,7 +247,8 @@ dygraph(test) %>%
 
 ```
 
-```{r Qualtrics API Credentials, include=FALSE}
+```{r Qualtrics API Credentials, eval=FALSE, include=FALSE}
+#block of code is depreciated
 q_token <- "bigsHycE1tmf2sfK5HR2CKShxGPasXZqC2QZ2Gvl" #Begonias Account
 qualtrics_api_credentials(api_key = q_token, 
                           base_url = "pennstate.ca1.qualtrics.com",
@@ -258,7 +256,8 @@ qualtrics_api_credentials(api_key = q_token,
 ```
 
 
-```{r Import Qualtrics Data, message=TRUE, include=FALSE}
+```{r Import Qualtrics Data, eval=FALSE, message=TRUE, include=FALSE}
+#block of code is depreciated
 surveys<-all_surveys()
 S3_Report<-fetch_survey(surveyID = "SV_8ixbUxRgNWtxuHH", label=TRUE, verbose = TRUE, convert = TRUE, force_request = TRUE)
 S4_Report <-fetch_survey(surveyID = "SV_8tOIVRgh1T4D2g5",  label = TRUE, verbose = TRUE, convert = FALSE, force_request = TRUE) 
@@ -297,12 +296,52 @@ S3_Report <-S3_Report  %>%
   filter(DistributionChannel != "preview")
 ```
 
-```{r}
+```{r Table for S3 Overview, echo=FALSE}
+#read in data
+S3_Overview <- read_excel(s3_path, sheet = "S3_Overview")
 
+#create the table outline - see Obsidian Vault Code, Notes "DT Package Notes" for additional tips on how to sketch out the html table/troubleshooting
+sketch = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(),
+      th(),
+      th(),
+      th(),
+      th(colspan = 3, 'Vanilla Baseline'),
+      th(colspan = 3, 'Defend the Kingdom'),
+      th(colspan = 3, 'Sorting Mushrooms'),
+      th(colspan = 3, 'Neighborhood'),
+      th(colspan = 3, 'Vending Machine')
+    ),
+    tr(
+      th('Date'),
+      th('ID'),
+      th('RA'),
+      th('Overall'),
+      lapply(rep(c('P', 'ET', 'B'), 5), th)
+    )
+  )
+))
+
+#create the table
+datatable(S3_Overview, 
+          caption = "Session 3 Overview",
+          container = sketch, rownames = FALSE)
+```
+
+```{r Vanilla Baseline Table, echo=FALSE}
+#import Vanilla Baseline Data
+S3_VB <- read_excel(s3_path, sheet = "Vanilla Baseline") 
+
+#Create Table
+datatable(S3_VB)
 ```
 
 
-```{r Session 4 Report Data Cleaning, include=FALSE}
+```{r Session 4 Report Data Cleaning, eval=FALSE, include=FALSE}
+#chunk is depreciated
 S4_Report<-S4_Report %>%
   rename(S4Date = s4_sessioninfo_1,
          `ID` = s4_sessioninfo_4,
@@ -329,6 +368,8 @@ S4_Report<-S4_Report %>%
   filter(DistributionChannel != "preview")
 
 ```
+
+
 
 ```{r CREATE R01 Targets, eval=FALSE, include=FALSE}
 
@@ -502,10 +543,44 @@ ExpecEnrollmentTable
 ### Overview
 
 ```{r}
-s3_shrooms$DateReformated <- format(s3_shrooms$Date, format = "%m-%d-%Y")
-s3_shrooms$DateReformated <- as.POSIXct(s3_shrooms$DateReformated, format = "%m-%d-%Y")
+#select the first worksheet in the vector to select the overview sheet
+s3_overview<-as_tibble(s3_report_data[1])
 
-datatable(s3_shrooms)
+s3_overview[,1]
+
+sketch = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(),
+      th(),
+      th(),
+      th(),
+      th(colspan = 3, 'Vanilla Baseline'),
+      th(colspan = 3, 'Defend the Kingdom'),
+      th(colspan = 3, 'Sorting Mushrooms'),
+      th(colspan = 3, 'Neighborhood'),
+      th(colspan = 3, 'Vending Machine')
+    ),
+    tr(
+      th('Date'),
+      th('ID'),
+      th('RA'),
+      th('Overall'),
+      lapply(rep(c('P', 'ET', 'B'), 5), th)
+    )
+  )
+))
+print(sketch)
+
+print(datatable(s3_overview[,1], container = sketch, rownames = FALSE))
+
+
+
+#s3_overview %>% select()
+#s3_shrooms$DateReformated <- format(s3_shrooms$Date, format = "%m-%d-%Y")
+#s3_shrooms$DateReformated <- as.POSIXct(s3_shrooms$DateReformated, format = "%m-%d-%Y")
+
 ```
 
 ```{r Session 3 Report Ratings, eval=FALSE, include=FALSE}
@@ -1188,9 +1263,6 @@ Master %>%
         plot.title.position = "plot" #this will left align the title
       
         )
-
-
-
 ```
 
 ```{r , echo=FALSE, warning=FALSE}
@@ -1336,7 +1408,7 @@ subset_age_gender <- Tracker %>% select(ID, AGE, GENDER, STATUS) %>%
 
 subset_age_gender$GENDER <- as.factor(subset_age_gender$GENDER)
 
-subset_age_gender$AGE <- as.factor(subset_age_gender$AGE)
+#subset_age_gender$AGE <- as.factor(subset_age_gender$AGE)
 subset_age_gender
 ggplot(subset_age_gender, aes(x = AGE)) +
   geom_bar(aes(fill = GENDER), show.legend = FALSE) +
@@ -1351,42 +1423,11 @@ ggplot(subset_age_gender, aes(x = AGE)) +
   theme(plot.title = element_markdown(lineheight = 1.1),
     legend.text = element_markdown(size = 11),
         axis.ticks.x  = element_blank())
-age_gender_dotplot  
+
 #ggsave("age_gender_dotplot", device = "png")
 
 ```
 
-
-```{r}
-ggplot(iris, aes(Sepal.Length, Sepal.Width, color = Species)) +
-  geom_point(size = 3) +
-  scale_color_manual(
-    name = NULL,
-    values = c(setosa = "#0072B2", virginica = "#009E73", versicolor = "#D55E00"),
-    labels = c(
-      setosa = "<i style='color:#0072B2'>I. setosa</i>",
-      virginica = "<i style='color:#009E73'>I. virginica</i>",
-      versicolor = "<i style='color:#D55E00'>I. versicolor</i>")
-  ) +
-  labs(
-    title = "**Fisher's *Iris* dataset**  
-    <span style='font-size:11pt'>Sepal width vs. sepal length for 
-    <span style='color:#0072B2;'>setosa</span>, 
-    <span style='color:#D55E00;'>versicolor</span>, and
-    <span style='color:#009E73;'>virginica</span>
-    </span>",
-    x = "Sepal length (cm)", y = "Sepal width (cm)"
-  ) +
-  theme_minimal() +
-  theme(
-    plot.title = element_markdown(lineheight = 1.1),
-    legend.text = element_markdown(size = 11),
-      theme(
-    plot.title = element_markdown(lineheight = 1.1),
-    legend.text = element_markdown(size = 11)
-  )
-  )
-```
 
 ```{r Age Visualization, echo=FALSE, warning=FALSE}
 
