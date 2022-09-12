@@ -18,36 +18,13 @@ output:
     number_sections: yes
     toc: yes
     toc_depth: 4
-params:
-  grant_year: 
-    label: "Grant Year"
-    input: numeric
-    value: 1
-    step: 1
-    min: 1
-    max: 6
-  report_start:
-    label: "Start Date"
-    input: date
-    value: "2019-07-01"
-    format: "mm/dd/yyyy"
-  report_end:
-    label: "End Date"
-    input: date
-    value: "2020-07-01"
-    format: "mm/dd/yyyy"
-  acuity_report:
-    label: "Acuity Session Report"
-    value: 
-    input: file
-
   
     
 ---
 
 ```{r setup, include=FALSE}
 if (!require(pacman)) { install.packages("pacman"); library(pacman) }
-p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT")
+p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext")
 
 #load R functions
 source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
@@ -98,7 +75,8 @@ Master<-Master %>%
     SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE", 
     SCREEN_COMPLETEYN = "SCREEN: COMPLETE Y/N", INEL_CODE = "INELEGIBILITY CODE", 
     INEL_PHASE ="PHASE DEEMED INELIGIBLE", 
-    INEL_YN = "ELIGIBLE YN")
+    INEL_YN = "ELIGIBLE YN",
+    NAME = "Name")
 
 #create record of start month and year for participants
 Master$SCREEN_SENTDATE <- as.POSIXct(strptime(Master$SCREEN_SENTDATE, format = '%Y-%m-%d'))
@@ -115,12 +93,15 @@ Master$SCREEN_COMPLETE_YEAR <- format(Master$SCREEN_COMPLETEDATE, '%Y')
 #Master$S1_YEAR <- format(Master$SCREEN_COMPLETEDATE, '%Y')
 
 #factorize source
+Master$SOURCE <- as.factor(Master$SOURCE)
+
 
 #Master$STATUS <-factor(Master$STATUS, levels = c("Completed S2", "Completed screen", "Inquiry", "Invited S1", "No longer interested", "Scheduled S1", "Screen sent"))
 levels(Master$STATUS)[levels(Master$STATUS)=="Screen sent"] <- "Screen Sent, Not Completed"
 levels(Master$STATUS)[levels(Master$STATUS)=="Completed screen"] <- "Ineligible After Screen"
 
 Master$SOURCE[is.na(Master$SOURCE)] <- "Unknown"
+
 ```
 
 
@@ -1241,30 +1222,6 @@ enrollment_pastweek_visual <-Master %>%
 plot_grid(total_status_graph, enrollment_pastweek_visual,  ncol = 1)
 ```
 
-``` {r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE}
-
-#factor each level so they can be reordered in the natural format to tell a better story
-#NA is naturally factored
-Master$STATUS <- factor(Master$STATUS, levels = c("No Longer Interested", "Inquiry", "Screen Sent", "Completed Screen", "Invited S1", "Queued S1"))
-
-#reverse the factor levels (see https://stackoverflow.com/questions/42710056/reverse-stacked-bar-order)
-Master$STATUS <-fct_rev(Master$STATUS)
-
-#create a plot based on this data
-Master %>%
-  drop_na(STATUS) %>%
-  ggplot(aes(y = STATUS)) +
-  geom_bar() +
-  labs(
-    title = "We have invited over half of the participants who completed the screen to enroll in the study") +
-  theme(panel.background = element_blank(),
-        axis.ticks = element_blank(), #axis.ticks removes the little - "ticks",
-        plot.title = element_text(face = "bold", hjust = 0), #the following two lines of code allow the title to be left aligned 
-        plot.title.position = "plot" #this will left align the title
-      
-        )
-```
-
 ```{r , echo=FALSE, warning=FALSE}
 #select all the values that are needed and create a summary table so that the graph to be rendered will have the categorical variable (status) along with the associated count(n) ready to go so that the geom_text layer can be added (n) 
 subset <- Master %>% select(Name, STATUS) %>% drop_na(STATUS) %>% group_by(STATUS) %>% tally()
@@ -1304,35 +1261,119 @@ ggsave(filename = "recruitment_survey", device = "png")
 ***
 ## Source of Study Activity (July 01- Today)
 
-```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE}
-inquiry_plot<-Master %>% select(SOURCE) %>%
-  group_by(SOURCE) %>%
+```{r Exploratory Data Analysis for Conversion of Recruitment to Enrollment}
+
+#conduct exploratory analysis to look at 
+
+#generate count of survey outcomes based on the recruitment source
+Master %>% select(SOURCE, STATUS) %>% 
+    na.omit() %>%
+  group_by(SOURCE, STATUS) %>%
   tally() %>%
-  arrange(desc(SOURCE)) %>%
-  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
-    geom_bar(stat="identity") +
-  scale_fill_brewer("Spectral") +
-    xlab("") +
-    ylab("Inquired About Study") +
-    coord_flip()+ 
-  theme(legend.position="none")
+ggplot(aes(x = SOURCE, y = n, fill = STATUS)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Enrollment Outcome Based on Recruitment Source")
 
+Master$SOURCE <-reorder(Master$SOURCE, Master$SOURCE, FUN = length)
 
-source_enrollment_plot<-Master %>% select(SOURCE, STATUS) %>%
-  dplyr::filter(STATUS == "Invited S1") %>%
-  group_by(SOURCE) %>%
+#visualize number of participants recruited from sources
+Master %>% select(SOURCE, STATUS) %>%
+  na.omit() %>%
+  group_by(SOURCE, STATUS) %>%
+  filter((STATUS == 'Invited S1' | STATUS == 'Completed Screen') & SOURCE != "Unknown") %>% 
   tally() %>%
-  arrange(desc(SOURCE)) %>%
-  ggplot(aes(x=reorder(SOURCE,-n), y=n, fill = SOURCE)) +
-    geom_bar(stat="identity") +
-  scale_fill_brewer("Spectral") +
-    xlab("") +
-    ylab("Eligible After Baseline Screen") +
-    coord_flip()+ 
-  theme(legend.position="none")
+  ggplot(aes(x = SOURCE, y = n, fill = STATUS)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
 
-plot_grid(inquiry_plot, source_enrollment_plot, ncol = 2)
 
+```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE, fig.showtext=TRUE}
+
+
+#look at the number of participants who actually enrolled in the study from the source
+
+subset_statbysource <-Master %>% select(NAME, SOURCE, STATUS) %>%
+  na.omit() 
+
+#create data frame
+df <- left_join(subset_statbysource, Tracker, by = "NAME") %>%
+ mutate("ELIGIBLE?" = replace_na(`ELIGIBLE?`, "NO")) %>%
+  select(NAME, SOURCE, `ELIGIBLE?`) %>%
+  rename(ELIG = "ELIGIBLE?")
+
+df$SOURCE <- reorder(df$SOURCE, df$SOURCE, FUN = length)
+
+#custom fonts for plot
+font_add_google("Roboto Mono", "roboto-mono")
+font_add_google("Schoolbell", "bell")
+
+showtext_auto()
+
+
+#generate plot
+ggplot(df, aes(y = factor(SOURCE))) +
+geom_bar(aes(fill = factor(ELIG)), width = .9, ) +
+  scale_y_discrete(expand = expand_scale(mult = c(0, .1))) + #adjust the white space around the start of each bar. Think of the x-axis as stacking from bottom to top. Use x_cont since data is numerical.
+#add a count for each group (the number of people per recruitment source)
+  scale_x_continuous(limits = c(0, 500), expand = c(.001, .001), position = "top") +
+    scale_fill_identity(guide = "none") +
+  geom_text(
+    stat = 'count',
+    aes(label = ..count..),
+    hjust = -1,
+    nudge_x = -.5
+  ) +
+  scale_fill_manual(
+    breaks = c("YES", "NO", "UNKNOWN"),
+    values = c("green", "red", "black")
+  ) +
+  annotate(
+    "text",
+    x = 320,
+    y = 6,
+    label = "Recruiting by campus fliers led to the \nhighest enrollment in the study overall",
+    size = 3,
+    family = "roboto-mono"
+  ) +
+  #coord_flip() + #removed coord flip as it was causing issues with controlling the placement of the x-axis label on top. Solution was to set y only. Seems to be better solution.
+  labs(title = "Enrollment in the study varied by recruitment source",
+      subtitle = "July 1st, 2019 - March 20th, 2020",
+       fill = "Did the individual enroll in NEUROMAP?"
+  ) +
+  xlab("Number of people who received screening survey"
+  ) +
+  #change the text and other theme elements
+  theme(
+    text = element_text(family = "roboto-mono"),
+    title = element_text(face = "bold", hjust = 0, size = 14),
+    axis.text.y = element_text(face = "bold", size = 11),
+    axis.line.x = element_line(),
+    axis.title.y = element_blank(),
+    axis.title.x= element_text(hjust = .0085, vjust = -5, size = 10), #changes size of x-axis font
+
+    #left align title 
+    plot.title.position = "plot",
+    axis.text.x = element_blank(),
+    
+    #remove ticks
+    axis.ticks.y = element_blank(),
+    
+    #axis.title = element_blank(),
+    
+    #change legend styling
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(face = "plain", size = 10),
+    
+    #remove background
+    panel.grid = element_blank()
+  )
+
+tab_df<- df %>% group_by(SOURCE, ELIG) %>% tally() %>%
+  rename(NUM_PEOPLE = n)
+
+datatable(tab_df)
 ```
 
 ```{r Source of Contacts - Past Week, eval=FALSE, include=FALSE}
