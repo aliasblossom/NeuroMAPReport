@@ -1285,15 +1285,6 @@ geom_bar(aes(fill = factor(ELIG)), width = .7) +
     breaks = c("YES", "NO", "UNKNOWN"),
     values = c("#008607", "#F60239", "#888888")
   ) +
-  annotate(
-    "text",
-    x = 300,
-    y = 6,
-    label = "Recruiting by campus fliers \nled to the highest enrollment in the study overall",
-    family = "lato",
-    size = 10
-    #lineheight = 7
-  ) +
   #coord_flip() + #removed coord flip as it was causing issues with controlling the placement of the x-axis label on top. Solution was to set y only. Seems to be better solution.
   labs(title = "Enrollment in the study varied by recruitment source",
       subtitle = "July 1st, 2019 - March 20th, 2020",
@@ -1316,7 +1307,6 @@ geom_bar(aes(fill = factor(ELIG)), width = .7) +
       #vjust = -5, 
       margin = margin(t = 18)),
     #changes size of x-axis font
-
     #left align title 
     plot.title.position = "plot",
     axis.text.x = element_blank(),
