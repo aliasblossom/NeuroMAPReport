@@ -3,6 +3,8 @@ title: "Weekly Recruitment Check"
 author: 
 output:
   html_document:
+    fig_width: 6
+    fig_asp: 0.618
     code_folding: hide
     df_print: kable
     mathjax: default
@@ -22,7 +24,7 @@ output:
 
 ```{r setup, include=FALSE}
 if (!require(pacman)) { install.packages("pacman"); library(pacman) }
-p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext")
+p_load("ggplot2", "dplyr", "tidyr", "cowplot", "qualtRics", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext", "gganotate")
 
 #load R functions
 source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
@@ -100,11 +102,7 @@ levels(Master$STATUS)[levels(Master$STATUS)=="Completed screen"] <- "Ineligible 
 
 Master$SOURCE[is.na(Master$SOURCE)] <- "Unknown"
 
-```
-
-
-```{r Import and Clean Tracker Data, include=FALSE}
-#establish path for file, load enrolled participant data
+#establish path for Tracker file, load enrolled participant data
 Tracker <-read_excel(ws_path, sheet = "Tracker")
 
 Tracker <- Tracker %>%
@@ -673,7 +671,7 @@ test2<-S3_Report %>%
     `Neighborhood Notes`,
     `Mushroom Notes`,
     `Vending Machine Notes`,
-    ) 
+    )
 
 %>%
   #drop_na() %>%
@@ -1178,7 +1176,7 @@ plot_grid(total_status_graph, enrollment_pastweek_visual,  ncol = 1)
 
 ```{r , echo=FALSE, warning=FALSE}
 #select all the values that are needed and create a summary table so that the graph to be rendered will have the categorical variable (status) along with the associated count(n) ready to go so that the geom_text layer can be added (n) 
-subset <- Master %>% select(Name, STATUS) %>% drop_na(STATUS) %>% group_by(STATUS) %>% tally()
+subset <- Master %>% select(NAME, STATUS) %>% drop_na(STATUS) %>% group_by(STATUS) %>% tally()
 
 #must refactor
 subset$STATUS <- factor(subset$STATUS, levels = c("No Longer Interested", "Inquiry", "Screen Sent", "Completed Screen", "Invited S1", "Queued S1"))
@@ -1242,7 +1240,7 @@ Master %>% select(SOURCE, STATUS) %>%
 ```
 
 
-```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE, fig.showtext=TRUE}
+```{r Source of Inquiry and Eligibility, echo=FALSE, warning=FALSE, fig.showtext=TRUE, out.width = "70%", fig.align = "center"}
 
 
 #look at the number of participants who actually enrolled in the study from the source
@@ -1260,35 +1258,41 @@ df$SOURCE <- reorder(df$SOURCE, df$SOURCE, FUN = length)
 
 #custom fonts for plot
 font_add_google("Roboto Mono", "roboto-mono")
-font_add_google("Schoolbell", "bell")
+
+# lato chosen for good visability on small sreens. See https://medium.com/nightingale/choosing-a-font-for-your-data-visualization-2ed37afea637
+
+font_add_google("Lato", "lato")
 
 showtext_auto()
 
+agg_png(file, width = 1000, height = 500, res = 144)
 
 #generate plot
-ggplot(df, aes(y = factor(SOURCE))) +
-geom_bar(aes(fill = factor(ELIG)), width = .9, ) +
-  scale_y_discrete(expand = expand_scale(mult = c(0, .1))) + #adjust the white space around the start of each bar. Think of the x-axis as stacking from bottom to top. Use x_cont since data is numerical.
+plot<-ggplot(df, aes(y = factor(SOURCE))) +
+geom_bar(aes(fill = factor(ELIG)), width = .7) +
+  scale_y_discrete(expand = expansion(mult = c(0, .1))) + #adjust the white space around the start of each bar. Think of the x-axis as stacking from bottom to top. Use x_cont since data is numerical.
 #add a count for each group (the number of people per recruitment source)
-  scale_x_continuous(limits = c(0, 500), expand = c(.001, .001), position = "top") +
+  scale_x_continuous(limits = c(0, 475), expand = c(.001, .001), position = "top") +
     scale_fill_identity(guide = "none") +
   geom_text(
     stat = 'count',
     aes(label = ..count..),
-    hjust = -1,
-    nudge_x = -.5
+    hjust = -.25,
+    nudge_x = -.5,
+    size = 25/.pt,
   ) +
   scale_fill_manual(
     breaks = c("YES", "NO", "UNKNOWN"),
-    values = c("green", "red", "black")
+    values = c("#008607", "#F60239", "#888888")
   ) +
   annotate(
     "text",
-    x = 320,
+    x = 300,
     y = 6,
-    label = "Recruiting by campus fliers led to the \nhighest enrollment in the study overall",
-    size = 3,
-    family = "roboto-mono"
+    label = "Recruiting by campus fliers \nled to the highest enrollment in the study overall",
+    family = "lato",
+    size = 10
+    #lineheight = 7
   ) +
   #coord_flip() + #removed coord flip as it was causing issues with controlling the placement of the x-axis label on top. Solution was to set y only. Seems to be better solution.
   labs(title = "Enrollment in the study varied by recruitment source",
@@ -1299,12 +1303,19 @@ geom_bar(aes(fill = factor(ELIG)), width = .9, ) +
   ) +
   #change the text and other theme elements
   theme(
-    text = element_text(family = "roboto-mono"),
-    title = element_text(face = "bold", hjust = 0, size = 14),
-    axis.text.y = element_text(face = "bold", size = 11),
+    text = element_text(family = "lato", size = 46),
+    title = element_text(face = "bold", hjust = 0),
+    plot.subtitle=element_text(face = "plain"), #manually change substitle font weight
+    axis.text.y = element_text(color = "black"),
     axis.line.x = element_line(),
     axis.title.y = element_blank(),
-    axis.title.x= element_text(hjust = .0085, vjust = -5, size = 10), #changes size of x-axis font
+    axis.title.x= element_text(
+      face = "plain", 
+      size = 25,
+      #hjust = .0085, 
+      #vjust = -5, 
+      margin = margin(t = 18)),
+    #changes size of x-axis font
 
     #left align title 
     plot.title.position = "plot",
@@ -1312,17 +1323,29 @@ geom_bar(aes(fill = factor(ELIG)), width = .9, ) +
     
     #remove ticks
     axis.ticks.y = element_blank(),
+    axis.ticks.x = element_blank(),
+    axis.line.x.top = element_line(lineend = "round"),
     
     #axis.title = element_blank(),
     
     #change legend styling
     legend.position = "bottom",
     legend.direction = "horizontal",
-    legend.title = element_text(face = "plain", size = 10),
+    legend.title = element_text(face = "plain"),
     
     #remove background
-    panel.grid = element_blank()
+    panel.grid = element_blank(),
+    panel.background = element_blank()
   )
+ggannotate()
+ragg::agg_png("ragg_5.png", width = 1980, height = 1280, units = "px", res = 300)
+plot
+dev.off()
+
+#ggsave("font_title_10x10_300.png", plot = plot, height = 1280, width = 1980, units = "px", dpi = 300)
+
+file <- knitr::fig_path('.png')
+agg_png(pngfile, width = 60, height = 36, units = "cm", res = 300)
 
 tab_df<- df %>% group_by(SOURCE, ELIG) %>% tally() %>%
   rename(NUM_PEOPLE = n)
@@ -1446,7 +1469,6 @@ graph_age_contacts_dense <- Master %>% select(AGE) %>%
   theme(plot.title = element_text(size = 10))
 
 plot_grid(graph_age_enrolled_dense, graph_age_contacts_dense, nrow = 1)
-
 
 ```
 
