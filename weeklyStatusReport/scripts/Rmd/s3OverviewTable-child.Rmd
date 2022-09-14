@@ -1,0 +1,40 @@
+```{r Overview Table, echo=FALSE}
+
+#select the first worksheet in the vector to select the overview sheet
+sketch = htmltools::withTags(table(
+  class = 'display',
+  thead(
+    tr(
+      th(),
+      th(),
+      th(),
+      th(),
+      th(colspan = 3, 'Vanilla Baseline'),
+      th(colspan = 3, 'Defend the Kingdom'),
+      th(colspan = 3, 'Sorting Mushrooms'),
+      th(colspan = 3, 'Neighborhood'),
+      th(colspan = 3, 'Vending Machine')
+    ),
+    tr(
+      th('Date'),
+      th('ID'),
+      th('RA'),
+      th('Overall'),
+      lapply(rep(c('P', 'ET', 'B'), 5), th)
+    )
+  )
+))
+#print(sketch)
+
+datatable(s3_overview, container = sketch, rownames = FALSE)
+
+
+
+#s3_overview %>% select()
+#s3_shrooms$DateReformated <- format(s3_shrooms$Date, format = "%m-%d-%Y")
+#s3_shrooms$DateReformated <- as.POSIXct(s3_shrooms$DateReformated, format = "%m-%d-%Y")
+
+
+```
+
+

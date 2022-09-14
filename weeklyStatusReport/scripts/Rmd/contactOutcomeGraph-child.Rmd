@@ -1,0 +1,33 @@
+```{r}
+total_status_graph <-Master %>% 
+  select(STATUS) %>%
+  dplyr::filter(!is.na(STATUS)) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip()+ 
+  theme(legend.position="none") +
+  ggtitle("Activity from July 01 - Today")
+
+  
+
+enrollment_pastweek_visual <-Master %>% 
+  select(STATUS, SCREEN_SENTDATE) %>%
+  dplyr::filter((SCREEN_SENTDATE >= params$report_start & SCREEN_SENTDATE <= params$report_end & !is.na(STATUS))) %>%
+  group_by(STATUS) %>%
+  tally()%>%
+  ggplot(aes(x=reorder(STATUS,-n), y=n, fill = STATUS)) +
+    geom_bar(stat="identity") +
+  scale_fill_brewer("Spectral") +
+    xlab("") +
+    ylab("") +
+    coord_flip() + 
+  theme(legend.position="none") +
+  ggtitle(ENROLL_PASTWEEK_TITLE)
+
+plot_grid(total_status_graph, enrollment_pastweek_visual,  ncol = 1)
+```

@@ -1,0 +1,11 @@
+/* establish font to be used for report - see https://github.com/nathco/Office-Code-Pro */
+@font-face {
+  font-family: OfficeCodePro;
+  src: url(~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Graphical_Resources/office-code-pro);
+}
+
+.headers {
+  color: red;
+  font-family: OfficeCodePro
+  font-size: ;
+}

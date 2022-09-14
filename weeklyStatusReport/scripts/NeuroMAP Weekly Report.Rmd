@@ -3,8 +3,6 @@ title: "Weekly Recruitment Check"
 author: 
 output:
   html_document:
-    fig_width: 6
-    fig_asp: 0.618
     code_folding: hide
     df_print: kable
     mathjax: default
@@ -46,8 +44,8 @@ CURRENT_MONTH_GRANT<- month(params$report_start - months(3)) #month of study (do
 ```{r NeuroMAP Master Tab Tidying, include=FALSE}
 
 #directory for worksheet with participant data
-ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/NEUROMAP Master V2_Copy.xlsx"
-s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/s3_quality_data.xlsx"
+ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/data/rawData/NEUROMAP Master V2_Copy.xlsx"
+s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/data/rawData/s3_quality_data.xlsx"
 
 
 #read in all worksheets for the s3 progress report
@@ -60,12 +58,14 @@ s3_report_data <- s3_path %>%
 neuroMAP_master<- ws_path %>% excel_sheets()
 
 s3_notes <- s3_path %>% excel_sheets()
+
 EnrollOverview <- read_excel(ws_path, sheet = "RO1 Aggregate")
 
 #load master participant data worksheet
 Master<- read_excel(ws_path, sheet = "MasterData")
 
 s3_shrooms <-read_excel(s3_path, sheet = "Sorting Mushroom Notes")
+s3_overview <-read_excel(s3_path, sheet = "S3_Overview")
 
 #tidy up column names for Master
 
@@ -521,9 +521,11 @@ ExpecEnrollmentTable
 
 ```{r}
 #select the first worksheet in the vector to select the overview sheet
-s3_overview<-as_tibble(s3_report_data[1])
 
-s3_overview[,1]
+#THE FOLLOWING 2 LINES OF CODE ARE DEPRECIATED
+
+#s3_overview<-as_tibble(s3_report_data[1])
+#s3_overview[,1]
 
 sketch = htmltools::withTags(table(
   class = 'display',
@@ -550,7 +552,7 @@ sketch = htmltools::withTags(table(
 ))
 print(sketch)
 
-print(datatable(s3_overview[,1], container = sketch, rownames = FALSE))
+print(datatable(s3_overview, container = sketch, rownames = FALSE))
 
 
 

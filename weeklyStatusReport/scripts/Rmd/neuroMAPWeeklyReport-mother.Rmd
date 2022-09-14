@@ -1,0 +1,45 @@
+---
+title: "Weekly Recruitment Check"
+output:
+  html_document:
+    code_folding: hide
+    df_print: kable
+    mathjax: default
+    number_sections: no
+    theme: spacelab
+    toc: yes
+    toc_depth: 3
+    fig_width: 9 
+    fig_height: 6 
+  pdf_document:
+    code_folding: hide
+    df_print: kable
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+if (!require(pacman)) { install.packages("pacman"); library(pacman) }
+p_load("ggplot2", "dplyr", "tidyr", "cowplot", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext", "here", "ragg")
+
+#load R functions
+#source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
+
+RO1_TOTAL_CAPTION <- "Cummulative R01 Enrollment To Date (Aug 2019 - March 2020)"
+ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 28th - March 6th)" 
+
+```
+
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "dataCleaning-child.Rmd")}
+```
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "s3OverviewTable-child.Rmd")}
+```
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "inquiryEligibilityGraph-child.Rmd")}
+```
+
