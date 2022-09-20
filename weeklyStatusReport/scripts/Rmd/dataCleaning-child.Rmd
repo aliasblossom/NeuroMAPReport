@@ -86,24 +86,19 @@ Tracker <- Tracker %>%
     .$STATUS == "Excluded" ~ "Ineligible",
     .$STATUS == "Completed S3, Scheduled S4" ~ "S4",
     .$`STUDY PROGRESS` == "Mia" ~ "MIA"))
-# ) %>%
-  # select(NEW_VAR) %>%
-  # drop_na()%>%
-  # dplyr::filter(!NEW_VAR %in% c("NR", "INEL")) %>%
-  # ggplot(aes(x=NEW_VAR)) +
-  # geom_bar(stat="count")
-
-#TRACKER$`STUDY PROGRESS`<-TRACKER$`STUDY PROGRESS` %>% str_to_title() 
-
-  # ) %>%
-  # select(NEW_VAR) %>%
-  # drop_na()%>%
-  # dplyr::filter(!NEW_VAR %in% c("NR", "INEL")) %>%
-  # ggplot(aes(x=NEW_VAR)) +
-  # geom_bar(stat="count")
-
-#Master$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", Master$NAME, perl = TRUE) # remove names and make initials
-#TRACKER$NAME<-gsub("(?<=[A-Z])[^A-Z]+", "", TRACKER$NAME, perl = TRUE) # remove names and make initials TRACKER
-
-#TRACKER$`S1 FU 1`<- as_date(TRACKER$`S1 FU 1`)
 ```
+
+```{r Load Fonts, include=FALSE}
+# lato chosen for good visability on small sreens. See https://medium.com/nightingale/choosing-a-font-for-your-data-visualization-2ed37afea637
+
+showtext_auto()
+font_add_google("Quicksand")
+font_add_google("Lato", "lato")
+
+```
+
+```{r Data Cleaning for Mushroom Task}
+s3_shrooms$Date <- format(as.Date(s3_shrooms$Date, format = "%Y-%d-%m"), "%m-%d-%Y")
+s3_shrooms$Researcher <- str_to_upper(s3_shrooms$Researcher)
+```
+
