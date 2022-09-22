@@ -3,29 +3,23 @@
 
 #directory for worksheet with participant data
 ws_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/data/rawData/NEUROMAP Master V2_Copy.xlsx"
-s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/data/rawData/s3_quality_data.xlsx"
-
 
 #return the names of each sheet
 neuroMAP_master<- ws_path %>% excel_sheets()
 
-#s3_notes <- s3_path %>% excel_sheets()
 EnrollOverview <- read_excel(ws_path, sheet = "RO1 Aggregate")
 
 #load master participant data worksheet
 Master<- read_excel(ws_path, sheet = "MasterData")
 
-
-s3_shrooms <-read_excel(s3_path, sheet = "Sorting Mushroom Notes")
-s3_overview <-read_excel(s3_path, sheet = "S3_Overview")
-
 #tidy up column names for Master
 
 Master<-Master %>% 
-  rename(
+  dplyr::rename(
     SCREEN_SENTDATE = "SCREEN: SENT DATE",
     SCREEN_COMPLETEDATE = "SCREEN: COMPLETE DATE", 
-    SCREEN_COMPLETEYN = "SCREEN: COMPLETE Y/N", INEL_CODE = "INELEGIBILITY CODE", 
+    SCREEN_COMPLETEYN = "SCREEN: COMPLETE Y/N", 
+    INEL_CODE = "INELEGIBILITY CODE", 
     INEL_PHASE ="PHASE DEEMED INELIGIBLE", 
     INEL_YN = "ELIGIBLE YN",
     NAME = "Name")
@@ -97,7 +91,34 @@ font_add_google("Lato", "lato")
 
 ```
 
-```{r Data Cleaning for Mushroom Task}
+
+```{r Import Session 3 Data, include=FALSE}
+#save the directory location for session 3 xlsx
+s3_path <- "~/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/data/rawData/s3_quality_data.xlsx"
+
+#get the names of all of the sheets contained in the s3_xlsx sheet for use with lapply
+s3_names<-excel_sheets(s3_path)
+
+#SPLIT and APPLY: generate list of dataframes containing contents of xlsx file
+s3_sheet_list <- lapply(s3_names, function(x) read_excel(path = s3_path, sheet = x))
+
+#add a new column with the corresponding name of each sheet so the data source can be identified when combined.
+filelist <- mapply(cbind, s3_sheet_list, "Task_Label"=s3_names, SIMPLIFY=F)
+
+#COMBINE: merge all list items into a single data frame as to make type usable for report generation. 
+
+s3_all_data <- plyr::rbind.fill(filelist)
+
+#
+
+
+
+s3_all_data %>% filter(ID == 15)
+
+```
+
+
+```{r Data Cleaning for Mushroom Task, eval=FALSE, include=FALSE}
 s3_shrooms$Date <- format(as.Date(s3_shrooms$Date, format = "%Y-%d-%m"), "%m-%d-%Y")
 s3_shrooms$Researcher <- str_to_upper(s3_shrooms$Researcher)
 ```
