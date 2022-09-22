@@ -1,0 +1,24 @@
+```{r echo=FALSE}
+subset_age_gender <- Tracker %>% select(ID, AGE, GENDER, STATUS) %>%
+  filter(STATUS != 'NO SHOW' & AGE >= 18) %>%
+  na.omit()
+
+subset_age_gender$GENDER <- as.factor(subset_age_gender$GENDER)
+
+#subset_age_gender$AGE <- as.factor(subset_age_gender$AGE)
+
+ggplot(subset_age_gender, aes(x = AGE)) +
+  geom_bar(aes(fill = GENDER), show.legend = FALSE) +
+  scale_x_continuous(breaks = seq(18,25, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 30, by = 5), limits = c(0, 30)) +
+  scale_fill_manual(values = c("pink", "blue")) +
+  labs(title = "<span style='color:pink;'>Female</span> Participants Outnumber <span style = 'color: blue', weight: bold>Males</span> by <span style='color:pink;'>2.4</span>:<span style = 'color: blue', weight: bold>1</span>",
+       caption = "Source: NEUROMAP Recruitment Data 2020",
+       y = "Number of Participants",
+       x = "Participant Age") +
+  theme_classic() +
+  theme(plot.title = element_markdown(lineheight = 1.1),
+    legend.text = element_markdown(size = 11),
+        axis.ticks.x  = element_blank())
+```
+
