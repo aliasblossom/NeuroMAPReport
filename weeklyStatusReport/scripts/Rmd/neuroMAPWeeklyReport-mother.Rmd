@@ -1,32 +1,26 @@
 ---
-title: "Weekly Recruitment Check"
-output:
+title: "NeuroMAP"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    theme:
+      version: 4
+      heading_font:
+        google: Quicksand
   html_document:
-    code_folding: hide
-    df_print: kable
-    mathjax: default
-    number_sections: no
-    theme: spacelab
-    toc: yes
-    toc_depth: 3
-    fig_width: 9 
-    fig_height: 6 
-  pdf_document:
-    code_folding: hide
-    df_print: kable
-    number_sections: yes
-    toc: yes
-    toc_depth: 4
+    fig_width: 6
+    fig_asp: 0.618
 ---
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 if (!require(pacman)) { install.packages("pacman"); library(pacman) }
-p_load("ggplot2", "dplyr", "tidyr", "cowplot", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext", "here", "ragg")
+p_load("bslib", "ggplot2", "dplyr", "tidyr", "cowplot", "readxl", "tidyverse", "lubridate", "RColorBrewer", "kableExtra", "dygraphs", "xts", "ggtext", "DT", "showtext", "here", "ragg")
 
-#load R functions
-#source("~/Documents/DepenD Lab/NeuroMAP/NMAPReports/Functions.R")
+#since rmarkdown is not referencing a current version of font awesome, use htmltools and fontawesome as shown below(https://github.com/rstudio/rmarkdown/issues/1661#issuecomment-802097335)
+htmltools::tagList(fontawesome::fa_html_dependency())
 
 RO1_TOTAL_CAPTION <- "Cummulative R01 Enrollment To Date (Aug 2019 - March 2020)"
 ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 28th - March 6th)" 
@@ -34,12 +28,113 @@ ENROLL_PASTWEEK_TITLE<- "Activity from Past Week (Feb 28th - March 6th)"
 ```
 
 
-```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "dataCleaning-child.Rmd")}
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "dataCleaning-child.Rmd"), cache=TRUE}
 ```
 
-```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "s3OverviewTable-child.Rmd")}
+
+NeuroMAP 
+==================
+
+Column {data-width=150}
+--------------------------------------------------------------------------------------
+
+### Header
+
+```{r echo=FALSE}
+flexdashboard::valueBox(9, icon = "fas fa-users")
+```   
+
+### Header
+```{r echo=FALSE}
+htmltools::tagList(fontawesome::fa_html_dependency())
+
+#this renders the icon
+fontawesome::fa("fas fa-user-check")
+
+#this renders text
+flexdashboard::valueBox(9, icon = "fas fa-user-check")
+```   
+
+### Header
+
+```{r echo=FALSE}
+flexdashboard::valueBox(9, icon = "fas fa-hourglass")
+```   
+### Header
+
+```{r echo=FALSE}
+flexdashboard::valueBox(9, icon = "fas fa-brain")
+```   
+
+
+Column {data-width=850}
+--------------------------
+
+###
+
+```{r echo=FALSE}
+htmltools::h1('About this Dashboard')
+
+htmltools::div('Welcome! My name is Begonia and I love data analysis! From 2019-2020 I worked at the Developmental Personality Neuroscience Lab headed by Dr. Michael Hallquist. While in this position, one of my responsibilities included monitoring the progression of participants through our study. I created a weekly report in R, along with a series of qualtrics surveys that I used to help monitor the study. As a personal exercise in dashboard building, I decided to rebuild the weekly report. Welcome!',
+htmltools::br(),
+'I have taken the liberty of generating mock data for some of the reports as I was unable to access all of the original data to replicate my project. Data sources are reflected throughout the report.')
+
+htmltools::h1('About NeuroMAP')
 ```
 
+Recruitment and Enrollment
+==================
+
+Row {data-height=350 vertical_layout: scroll}
+-------------------------------------
+    
+### 
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "enrolledGenderGraph-child.Rmd"), cache=TRUE}
+```
+
+
+### 
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "enrolledGenderGraph-child.Rmd"), cache=TRUE}
+```
+
+
+Row {data-height=650 .tabset .tabset-pills .tabset-fade}
+-------------------------------------
+
+### Chart
+    
 ```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "inquiryEligibilityGraph-child.Rmd")}
 ```
+
+
+### Table
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "inquiryEligibilityTable-child.Rmd")}
+```
+
+
+Session 3 Quality
+==================
+
+Row {data-height=650 .tabset .tabset-fade}
+-------------------------------------
+
+### Session 3 Overview
+
+```{r}
+tag$h2('About')
+tag$div()
+
+
+```
+
+
+```{r child = here::here("weeklyStatusReport", "scripts", "Rmd", "s3OverviewTable-child.Rmd"), cache=TRUE}
+```
+
+### Sorting Mushrooms
+
+Session 4 Quality
+=================
 
