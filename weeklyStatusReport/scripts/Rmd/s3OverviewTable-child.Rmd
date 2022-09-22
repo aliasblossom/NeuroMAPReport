@@ -1,3 +1,4 @@
+
 ```{r Overview Table, echo=FALSE}
 #select the first worksheet in the vector to select the overview sheet
 sketch = htmltools::withTags(table(
@@ -25,7 +26,19 @@ sketch = htmltools::withTags(table(
 ))
 #print(sketch)
 
-datatable(s3_overview, container = sketch, rownames = FALSE)
+S3_Overview<- s3_all_data %>% filter(Task_Label == "S3_Overview") %>%
+  select(-Task_Label) %>%
+  arrange(ID) %>%
+  mutate(duplicate = duplicated(.$ID))
+
+duplicated(S3_Overview$ID)
+
+datatable(S3_Overview, container = sketch, rownames = FALSE) %>%
+  formatStyle(
+  'duplicate',
+  target = 'row',
+  backgroundColor = styleEqual(c(TRUE, FALSE), c('red', 'white'))
+)
 
 
 
@@ -35,8 +48,30 @@ datatable(s3_overview, container = sketch, rownames = FALSE)
 ```
 
 
-```{r Sorting Mushrooms, echo=FALSE}
-datatable(s3_shrooms, rownames = FALSE)
+```{r Calculate Average Rating Each Week, , echo=FALSE}
+#create a new variable to be used for grouping time-points
+S3_Overview$week_num <-strftime(S3_Overview$Date, format = "%V")
+
+#data cleaning
+S3_Overview$Overall <- as.numeric(S3_Overview$Overall)
+
+#figure out the average score for each week
+S3_Overview_avg_rating<-S3_Overview %>% select(Date, Overall, week_num) %>% na.omit() %>% filter(Overall != "NA") %>%
+  group_by(week_num) %>%
+  summarize(average_score = mean(Overall))
+
+#from the weekly average determine the average score overall
+mean<-transmute(S3_Overview_avg_rating, average = mean(average_score))
+mean <- mean[1,1]
+
+S3_Overview_avg_rating %>% ggplot(aes(x = week_num, y = average_score, group = 1)) +
+  geom_line() +
+  geom_hline(yintercept = 3.44, color = "red")
+  scale_y_continuous(limits = c(0,5)) +
+    labs(title = "The Average Score Given By Experimenters to Rate Session 3 Data Collection")
+
+
+
 ```
 
 
