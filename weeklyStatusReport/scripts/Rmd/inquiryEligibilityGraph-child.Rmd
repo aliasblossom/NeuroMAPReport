@@ -1,4 +1,4 @@
-```{r Source of Inquiry and Eligibility, echo=FALSE, fig.showtext=TRUE}
+```{r Tidy Data, include=FALSE}
 
 #look at the number of participants who actually enrolled in the study from the source
 
@@ -7,34 +7,34 @@ subset_statbysource <-Master %>% select(NAME, SOURCE, STATUS) %>%
 
 #create data frame
 df <- left_join(subset_statbysource, Tracker, by = "NAME") %>%
- mutate("ELIGIBLE?" = replace_na(`ELIGIBLE?`, "NO")) %>%
+ mutate("ELIGIBLE?" = replace_na(`ELIGIBLE?`, "NO"),) %>%
   select(NAME, SOURCE, `ELIGIBLE?`) %>%
-  rename(ELIG = "ELIGIBLE?")
+  rename(ELIG = "ELIGIBLE?") %>%
+  mutate(ELIG = str_to_sentence(.$ELIG))
+  
 
 df$SOURCE <- reorder(df$SOURCE, df$SOURCE, FUN = length)
 
-#custom fonts for plot
-font_add_google("Roboto Mono", "roboto-mono")
 
+```
+
+```{r Source of Inquiry and Eligibility, echo=FALSE, fig.showtext=TRUE, include=TRUE}
 # lato chosen for good visability on small sreens. See https://medium.com/nightingale/choosing-a-font-for-your-data-visualization-2ed37afea637
-
-font_add_google("Lato", "lato")
 
 showtext_auto()
 
 #generate plot
-plot<-ggplot(df, aes(y = factor(SOURCE))) +
+ggplot(df, aes(y = factor(SOURCE))) +
 geom_bar(aes(fill = factor(ELIG)), width = .7) +
   scale_y_discrete(expand = expansion(mult = c(0, .1))) + #adjust the white space around the start of each bar. Think of the x-axis as stacking from bottom to top. Use x_cont since data is numerical.
 #add a count for each group (the number of people per recruitment source)
   scale_x_continuous(limits = c(0, 475), expand = c(.001, .001), position = "top") +
-    scale_fill_identity(guide = "none") +
+    #scale_fill_identity(guide = "none") +
   geom_text(
     stat = 'count',
     aes(label = ..count..),
     hjust = -.25,
-    nudge_x = -.5,
-    size = 25/.pt,
+    nudge_x = -.5
   ) +
   scale_fill_manual(
     breaks = c("YES", "NO", "UNKNOWN"),
@@ -49,15 +49,14 @@ geom_bar(aes(fill = factor(ELIG)), width = .7) +
   ) +
   #change the text and other theme elements
   theme(
-    text = element_text(family = "lato", size = 46),
+    text = element_text(family = "lato"),
     title = element_text(face = "bold", hjust = 0),
     plot.subtitle=element_text(face = "plain"), #manually change substitle font weight
     axis.text.y = element_text(color = "black"),
     axis.line.x = element_line(),
     axis.title.y = element_blank(),
     axis.title.x= element_text(
-      face = "plain", 
-      size = 25,
+      face = "plain",
       #hjust = .0085, 
       #vjust = -5, 
       margin = margin(t = 18)),
@@ -82,18 +81,87 @@ geom_bar(aes(fill = factor(ELIG)), width = .7) +
     panel.grid = element_blank(),
     panel.background = element_blank()
   )
+
+
 #ggannotate()
-#ragg::agg_png("ragg_5.png", width = 1980, height = 1280, units = "px", res = 300)
-plot
-dev.off()
+#ragg::agg_png("/Users/strength/Documents/DepenD Lab/NeuroMAP/NMAPReports/weeklyStatusReport/output/graph1.png", width = 1980, height = 1280, units = "px", res = 1)
+
+#dev.off()
 
 #ggsave("font_title_10x10_300.png", plot = plot, height = 1280, width = 1980, units = "px", dpi = 300)
 
 #file <- knitr::fig_path('.png')
 #agg_png(pngfile, width = 60, height = 36, units = "cm", res = 300)
-
-tab_df<- df %>% group_by(SOURCE, ELIG) %>% tally() %>%
-  rename(NUM_PEOPLE = n)
-
-datatable(tab_df)
 ```
+
+```{r eval=FALSE, include=FALSE}
+plot_1 <- ggplot(df, aes(y = factor(SOURCE))) +
+  geom_bar(aes(fill = factor(ELIG)), position = "fill") +
+  scale_x_continuous(expand = c(.01, .01), labels = scales::percent) +
+  #manually modify color of bars to be easier to see
+  scale_fill_manual(
+    breaks = c("Yes", "No", "Unknown"),
+    values = c("light blue", "light gray", "dark gray"
+    )
+  ) +
+  
+  labs(title = "Campus publicity was the most effective method of enrolling participants in the study",
+       fill = "Enrolled") +
+  xlab("Percent of Survey Responses")
+
+theme1 <- theme_min
+  theme(
+    #remove y axis title
+    axis.title.y = element_blank(),
+    
+    plot.title.position = "plot",
+    #data legend
+    legend.position = "top",
+    legend.justification = "left",
+    #legend.position = c(.423, 1), #first number controls left/right orientation. second number controls top/bottom
+    legend.margin = margin(5, 0, 5, 0),
+    legend.box.margin = margin(2, 0, 2, 2),
+    legend.direction = "horizontal",
+    legend.title = element_text(face = "plain"),
+    
+    
+    #remove background
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    
+    axis.text.y = element_text(margin = margin(l = 10))
+  )
+
+
+plot_1 + theme1
+
+  
+theme2<-theme(legend.position="top",
+        legend.justification="left",
+    #legend.position = c(.423, 1), #first number controls left/right orientation. second number controls top/bottom
+    #legend.margin = margin(0,0,0,20),
+    legend.box.background = element_rect(colour = "black"),
+    legend.direction = "horizontal",
+    legend.title = element_text(face = "plain"))
+    #axis.text.y = element_text(margin = margin(0, -30, 0, 0))) #hjust controls justification of text, instead use element_text(margin) to adjust
+
+plot_1 + theme2
+  
+```
+
+
+```{r eval=FALSE, include=FALSE}
+plot_1 <- ggplot(df, aes(y = factor(SOURCE))) +
+  geom_bar(aes(fill = factor(ELIG)), position = "fill") +
+  scale_x_continuous(expand = c(.01, .01), labels = scales::percent) +
+  #manually modify color of bars to be easier to see
+  scale_fill_manual(
+    breaks = c("Yes", "No", "Unknown"),
+    values = c("light blue", "light gray", "dark gray"
+    )
+  ) 
+ 
+  plot_1 + theme(
+                 legend.text = element_text())
+```
+
